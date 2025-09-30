@@ -1,0 +1,122 @@
+# EXPOSurE.ART - Artist Marketplace Platform
+## Overview
+EXPOSurE.ART is a full-stack web application serving as an exclusive marketplace for authentic, human-created artwork. The platform connects artists with collectors and art enthusiasts, emphasizing genuine human creativity over Al-generated content.
+Built with a modern tech stack, it features artwork discovery, artist profiles, commission requests, tutorials, subscription management, and integrated payment processing.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+
+**Framework & Build Tools**
+- React 18+ with TypeScript for type-safe component
+develonment
+- Vite as the build tool and development server for fast HMR (Hot
+Module Replacement)
+- Wouter for lightweight client-side routing instead of React
+Router
+- TailwindCSS for utility-first styling with custom theme configuration
+**State Management & Data Fetching**
+-TanStack Query (React Query) for server state management, caching, and data synchronization
+- Custom auth context providers for both Firebase and local authentication
+- Cookie-based session management for maintaining authentication state
+**UI Component Strategy**
+- Radix Ul primitives for accessible, unstyled component foundations
+- shaden/ui design system built on top of Radix with TailwindCSS
+styling
+- Custom theme system using JSON configuration for dynamic color schemes
+- Responsive design patterns with mobile-first approach
+**Form Handling**
+- React Hook Form for performant form state management
+- Zod for runtime schema validation
+- @hookform/resolvers for seamless integration between the two
+### Backend Architecture
+**Server Framework**
+- Express.js as the Node.js web framework
+- TypeScript for type safety across the stack
+-ESM (ECMAScript Modules) format for modern module system
+**API Design Pattern**
+- RESTful API endpoints organized by resource type
+- Middleware-based authentication using tokens and cookies
+- Custom error handling middleware for consistent error responses
+- Request logging middleware for debugging and monitoring
+**Authentication Strategy**
+- Dual authentication system supporting both Firebase and local token-based auth
+- Firebase Authentication for Auth providers (Google, GitHub)
+- Cookie-based session tokens for API authentication
+-Password reset functionality with token-based validation
+**File Upload Management**
+- Multer middleware for handling multipart/form-data
+- File storage with path resolution for artwork images
+- Image preview generation and validation
+
+### Data Storage Solutions
+
+**Database**
+- PostgreSQL as the primary relational database
+- Neon serverless PostgreSQL for cloud-hosted database with WebSocket support
+- Drizzle ORM for type-safe database queries and schema management
+**Schema Design Principles**
+- User-centric design with artist/buyer role differentiation
+- Artwork catalog with comprehensive metadata (medium, dimensions, pricing, edition info
+- Category-based organization for artwork classification
+- Commission system for custom artwork requests
+- Tutorial platform with step-based content structure
+- Learning paths and skill tracking for artist development
+- Collaboration system for multi-artist projects
+- Social features including sharing and user interactions
+- Recommendation engine with scoring and tracking
+**Key Database Tables**
+- 'users': Core user profiles with artist flags, subscription tiers, preferences
+- "artworks': Artwork catalog with sales status, pricing, and metadata
+- 'categories": Artwork categorization system commissions: Custom artwork request management
+- "tutorials" & 'tutorialSteps': Educational content structure
+- "learningPaths", "learningPathSteps", 'userLearningProgress':
+Skill development tracking
+- "skills" & 'userSkills": Artist competency management
+- challenges' & challengeSubmissions: Community engagement features
+- collaborations & related tables: Multi-artist project management
+- 'passwordResetTokens": Secure password recovery flow
+
+### External Dependencies 
+
+**Payment Processing**
+- Stripe for subscription billing and payment processing
+- @stripe/stripe-js and @stripe/react-stripe-js for frontend integration
+- Stripe webhooks for handling subscription events and payment confirmations
+- Checkout session management for secure payment flows
+**Email Services*•
+- SendGrid for transactional email delivery
+- Password reset email workflows
+- User notification system (configurable)
+**Authentication Providers**
+- Firebase Authentication for Auth social login (Google, GitHub
+- Custom JWT/token implementation for local authentication
+- Fallback to local auth if Firebase is not configured
+**Cloud Infrastructure**
+- Neon Database for serverless PostgreSQL hosting
+- WebSocket connection pooling for database connections
+- Environment-based configuration for multiple deployment targets
+**Development Tools**
+- Drizzle Kit for database migrations and schema managi
+- ESBuild for production bundling of server code
+- TSX for TypeScript execution in development
+- Replit-specific plugins for deployment and debugging
+**Key Environment Variables Required**
+- DATABASE_URL*: PostgreSQL connection string
+- 'VITE_STRIPE_PUBLIC_KEY": Stripe publishable key
+"SENDGRID_APKEY': SendGrid API credentials
+SENDGRID_FROM_EMAIL: Verified sender email
+"VITE_FIREBASE*: Firebase project configuration
+- "APP_URL": Application base URL for email links
+
+
+
+
+
+
+
+
