@@ -1,23 +1,79 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="uft-8" />
-    <meta name"viewport" content="width=device-width,initial-scale=1" />
-    <title> EXPOSurE.ART</title>
-    <style>
-      body { font-family: system-ui, sans-serif; margin:0; padding: 2rem; }
-      header {font-size: 2rem; font-weight: 700; letter-spacing: .04em; }
-      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); margin-top: 1.5rem; }
-      .card { border: 1px solid #ddd; padding: 12px; border-radius: 8px; }
-      .muted { color:#666; font-size:.95rem; }
-    </style>
-  </head>
-  <body>
-    <header>EXPOSurE.ART</header>
-    <p> class="muted">Drops,prints, and projects by Mikol Anthony. Site build in progress.</p>
-    <div class="grid">
-      <div class="card"><strong>Drop #1</strong><br><span class="muted">Coming soon</span></div>
-      <div class="card"><strong>Drop #2</strong><br><span class="muted">Coming soon</span></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXPOSurE.ART — Digital Portfolio of Mikol Anthony</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <header class="site-header">
+    <h1>EXPOSurE.ART</h1>
+    <p class="tagline">Digital Art • Drops • Collections</p>
+  </header>
+
+  <nav class="main-nav">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+  </nav>
+
+  <section class="hero">
+    <img src="assets/banner.jpg" alt="Mikol Art Banner" class="hero-img">
+    <h2 class="hero-title">The Official Digital Art Portfolio of Mikol Anthony</h2>
+    <p class="hero-sub">Advanced artwork, asset packs, interactive bundles & exclusive drops.</p>
+  </section>
+
+  <section class="featured
+
+
+# --- MAKE FOLDERS ---
+mkdir -p assets css js collections/drop-01/full collections/drop-02/full
+
+# --- CREATE index.html ---
+cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXPOSurE.ART — Digital Portfolio of Mikol Anthony</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <header class="site-header">
+    <h1>EXPOSurE.ART</h1>
+    <p class="tagline">Digital Art • Drops • Collections</p>
+  </header>
+
+  <nav class="main-nav">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+  </nav>
+
+  <section class="hero">
+    <img src="assets/banner.jpg" alt="Mikol Art Banner" class="hero-img">
+    <h2 class="hero-title">The Official Digital Art Portfolio of Mikol Anthony</h2>
+    <p class="hero-sub">Advanced artwork, asset packs, interactive bundles & exclusive drops.</p>
+  </section>
+
+  <section class="featured">
+    <h3>Featured Collection</h3>
+    <div class="featured-grid">
+      <a href="collections/drop-01/" class="feat-card">
+        <img src="collections/drop-01/thumbnail.jpg" alt="">
+        <h4>Drop #01 — Cosmic Pulse</h4>
+      </a>
+
+      <a href="collections/drop-02/" class="feat-card">
+        <img src="collections/drop-02/thumbnail.jpg" alt="">
+        <h4>Drop #02 — Neon Spirits</h4>
+      </a>
     </div>
-  </body>
+  </section>
+
+</body>
 </html>

@@ -1,0 +1,60 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f8f8f8;
+  color: #000;
+}
+
+.site-header {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.tagline {
+  color: #444;
+}
+
+.main-nav {
+  text-align: center;
+  padding: 10px 0;
+  background: #e0e0e0;
+}
+
+.main-nav a {
+  margin: 0 15px;
+  color: black;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.hero {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.hero-img {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 8px;
+}
+
+.featured-grid, .gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.feat-card, .gallery-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: black;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  transition: 0.2s;
+}
+
+.feat-card:hover, .gallery-card:hover {
+  transform: translateY(-4px);
+}
