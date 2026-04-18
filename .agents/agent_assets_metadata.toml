@@ -18,3 +18,9 @@ id = "GXhRVJqLWx0fubEaklG-X"
 uri = "file://EXPOSurE-ART.tar.gz"
 type = "unspecified"
 title = "EXPOSurE-ART - Project Files (tar.gz)"
+
+[[outputs]]
+id = "g9SsOgaEamL_YI_QuYpDp"
+uri = "file://EXPOSurE-ART-source.txt"
+type = "text"
+title = "EXPOSurE-ART - All Source Code (.txt)"
