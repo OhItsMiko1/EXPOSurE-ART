@@ -12,3 +12,9 @@ id = "hkWE4vNFxrisSN1Cjl5ET"
 uri = "file://EXPOSurE-ART-complete.zip"
 type = "unspecified"
 title = "EXPOSurE-ART - Complete Source Code"
+
+[[outputs]]
+id = "GXhRVJqLWx0fubEaklG-X"
+uri = "file://EXPOSurE-ART.tar.gz"
+type = "unspecified"
+title = "EXPOSurE-ART - Project Files (tar.gz)"
