@@ -1,0 +1,27 @@
+HOW TO RUN EXPOSurE.ART ON YOUR COMPUTER
+==========================================
+
+REQUIREMENTS (install these first):
+- Node.js v20+: https://nodejs.org
+- PostgreSQL database (or use a free cloud one at https://neon.tech)
+
+STEPS:
+1. Unzip this folder
+2. Open Terminal (Mac) or Command Prompt (Windows) in the unzipped folder
+3. Run: npm install
+4. Create a .env file in the root with:
+   DATABASE_URL=your_postgresql_connection_string
+   VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key (optional)
+   SENDGRID_API_KEY=your_sendgrid_key (optional)
+5. Run: npm run db:push  (sets up the database)
+6. Run: npm run dev
+7. Open your browser and go to: http://localhost:5000
+
+NOTES:
+- The app will run at http://localhost:5000
+- Default admin login: username=admin, password=admin123
+- Stripe and SendGrid are optional (payments and emails won't work without them)
+
+EASIEST ALTERNATIVE:
+Instead of running locally, just deploy it on Replit.com — it handles
+the database, server, and hosting automatically with one click.

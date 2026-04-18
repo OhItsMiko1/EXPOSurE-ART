@@ -6,3 +6,9 @@ id = "yUw3CYs4L8bUlQ-ijKjrV"
 uri = "file://EXPOSurE-ART.zip"
 type = "unspecified"
 title = "EXPOSurE-ART Project Files"
+
+[[outputs]]
+id = "hkWE4vNFxrisSN1Cjl5ET"
+uri = "file://EXPOSurE-ART-complete.zip"
+type = "unspecified"
+title = "EXPOSurE-ART - Complete Source Code"
