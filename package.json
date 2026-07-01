@@ -1,0 +1,17 @@
+{
+  "name": "exposure-art",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:html": "html-validate *.html",
+    "test:schema": "node tests/validate-schemas.js",
+    "test:e2e": "playwright test",
+    "test": "npm run test:html && npm run test:schema && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "ajv": "^6.12.6",
+    "html-validate": "^8.0.0",
+    "serve": "^14.2.0"
+  }
+}
