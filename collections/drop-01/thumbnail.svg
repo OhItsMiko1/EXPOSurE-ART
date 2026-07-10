@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <defs>
+    <linearGradient id="thumbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2b1055"/>
+      <stop offset="50%" stop-color="#5b3a9e"/>
+      <stop offset="100%" stop-color="#7597de"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="480" fill="url(#thumbGradient)"/>
+  <text x="50%" y="48%" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="bold" fill="#ffffff" opacity="0.9">
+    Drop 01
+  </text>
+  <text x="50%" y="58%" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#ffffff" opacity="0.75">
+    Image coming soon
+  </text>
+</svg>
