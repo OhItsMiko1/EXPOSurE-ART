@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+  <defs>
+    <linearGradient id="bannerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2b1055"/>
+      <stop offset="50%" stop-color="#7597de"/>
+      <stop offset="100%" stop-color="#ff6ec4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bannerGradient)"/>
+  <text x="50%" y="52%" text-anchor="middle" font-family="system-ui, sans-serif" font-size="56" font-weight="bold" fill="#ffffff" opacity="0.9">
+    EXPOSurE.ART
+  </text>
+  <text x="50%" y="66%" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" fill="#ffffff" opacity="0.75">
+    Placeholder banner — replace with real artwork
+  </text>
+</svg>

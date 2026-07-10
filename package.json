@@ -1,0 +1,14 @@
+{
+  "name": "exposure-art",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EXPOSurE.ART static portfolio site",
+  "scripts": {
+    "validate:html": "html-validate \"*.html\" \"collections/**/*.html\"",
+    "check:links": "linkinator index.html gallery.html --recurse"
+  },
+  "devDependencies": {
+    "html-validate": "^8.24.0",
+    "linkinator": "^6.0.4"
+  }
+}
