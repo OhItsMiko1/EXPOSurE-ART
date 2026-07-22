@@ -14,8 +14,6 @@ import path from "path";
 import fs from "fs";
 import { z } from "zod";
 import { ZodError } from "zod-validation-error";
-import Stripe from 'stripe';
-
 // Add auth middleware
 declare global {
   namespace Express {
@@ -96,7 +94,7 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, httpServer?: Server): Promise<Server> {
   const router = express.Router();
 
   // Apply auth middleware to all routes
@@ -905,6 +903,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API routes
   app.use('/api', router);
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return httpServer || createServer(app);
 }

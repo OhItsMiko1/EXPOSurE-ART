@@ -1,148 +1,122 @@
-
-import { createContext, useContext, useState, useEffect } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { auth, signInWithGoogle as firebaseSignInWithGoogle, signInWithGithub as firebaseSignInWithGithub } from "./firebase";
+import { apiRequest } from "./queryClient";
+import { User, LoginFormValues, RegisterFormValues } from "./types";
+import { queryClient } from "./queryClient";
 
-const AuthContext = createContext<{
-  user: any;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  loginWithGithub: () => Promise<void>;
+interface AuthContextType {
+  user: User | null;
+  login: (data: LoginFormValues) => Promise<void>;
+  register: (data: RegisterFormValues) => Promise<void>;
+  logout: () => void;
   isLoading: boolean;
-  error: string | null;
-}>({
-  user: null,
-  login: async () => {},
-  register: async () => {},
-  logout: async () => {},
-  loginWithGoogle: async () => {},
-  loginWithGithub: async () => {},
-  isLoading: true,
-  error: null,
-});
+}
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [, setLocation] = useLocation();
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
+  // Check if user is already logged in
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const response = await fetch('/api/users/me');
-          const userData = await response.json();
-          setUser(userData);
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUser(null);
+    const checkAuth = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         }
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error("Failed to restore authentication state:", error);
+        localStorage.removeItem("user");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setError(null);
+  const login = async (data: LoginFormValues) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      setLocation("/");
-    } catch (error: any) {
-      setError(error.message);
+      setIsLoading(true);
+      const response = await apiRequest("POST", "/api/users/login", data);
+      const userData = await response.json();
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Login successful",
+        description: `Welcome back, ${userData.fullName}!`,
+      });
+      
+      navigate("/");
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const register = async (email: string, password: string) => {
-    setError(null);
+  const register = async (data: RegisterFormValues) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      setLocation("/");
-    } catch (error: any) {
-      setError(error.message);
+      setIsLoading(true);
+      const { confirmPassword, ...userData } = data;
+      const response = await apiRequest("POST", "/api/users/register", userData);
+      const newUser = await response.json();
+      setUser(newUser);
+      localStorage.setItem("user", JSON.stringify(newUser));
+      
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Registration successful",
+        description: `Welcome to ArtistSpace, ${newUser.fullName}!`,
+      });
+      
+      navigate("/");
+    } catch (error) {
+      console.error("Registration failed:", error);
+      toast({
+        title: "Registration failed",
+        description: error instanceof Error ? error.message : "Could not create account",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    setError(null);
-    try {
-      await signOut(auth);
-      setLocation("/login");
-    } catch (error: any) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const loginWithGoogle = async () => {
-    setError(null);
-    try {
-      await firebaseSignInWithGoogle();
-      setLocation("/");
-    } catch (error: any) {
-      console.error("Google login error:", error);
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const loginWithGithub = async () => {
-    setError(null);
-    try {
-      await firebaseSignInWithGithub();
-      setLocation("/");
-    } catch (error: any) {
-      console.error("Github login error:", error);
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    queryClient.clear();
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    
+    navigate("/");
   };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      register, 
-      logout, 
-      loginWithGoogle, 
-      loginWithGithub, 
-      isLoading, 
-      error 
-    }}>
-      {children}
-    </AuthContext.Provider>
+  return React.createElement(
+    AuthContext.Provider,
+    { value: { user, login, register, logout, isLoading } },
+    children
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
