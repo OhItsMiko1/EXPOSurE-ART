@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { Artwork, User } from "@/lib/types";
 import ArtworkCard from "./ArtworkCard";
 import { Button } from "./button";

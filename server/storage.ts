@@ -1256,7 +1256,7 @@ export class FixedDatabaseStorage extends DatabaseStorage {
 export const storage = new FixedDatabaseStorage();
 
 // Create admin user
-(async () => {
+if (!process.env.VITEST) (async () => {
   const existingAdmin = await storage.getUserByUsername("admin");
   if (!existingAdmin) {
     await storage.createUser({

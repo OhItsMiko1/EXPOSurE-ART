@@ -14,6 +14,7 @@ import path from "path";
 import fs from "fs";
 import { z } from "zod";
 import { ZodError } from "zod-validation-error";
+import Stripe from "stripe";
 // Add auth middleware
 declare global {
   namespace Express {

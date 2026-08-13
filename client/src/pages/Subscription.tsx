@@ -1,6 +1,6 @@
 import React from 'react';
 import SubscriptionPlans from '@/components/ui/SubscriptionPlans';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from "@/lib/local-auth";
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';

@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   ArrowLeft
 } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,

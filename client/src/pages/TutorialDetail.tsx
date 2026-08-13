@@ -23,7 +23,7 @@ import {
   ArrowLeft,
   ChevronRight
 } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { formatDistanceToNow } from "date-fns";
 
 interface TutorialWithAuthor extends Tutorial {

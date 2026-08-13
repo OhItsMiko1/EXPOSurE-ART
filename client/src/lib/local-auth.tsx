@@ -2,17 +2,11 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import type { User as SchemaUser } from "@shared/schema";
 
-// Define the User type
-type User = {
-  id: number;
-  username: string;
-  email: string;
-  isArtist: boolean;
-  fullName: string;
-  profileImage?: string;
-  isAdmin?: boolean;
-};
+// The server strips `password` before sending a user to the client
+// (see the `authMiddleware`/login/register handlers in server/routes.ts).
+type User = Omit<SchemaUser, "password">;
 
 // Auth context type
 type AuthContextType = {

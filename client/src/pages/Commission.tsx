@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { commissionFormSchema, CommissionFormValues, User } from "@/lib/types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

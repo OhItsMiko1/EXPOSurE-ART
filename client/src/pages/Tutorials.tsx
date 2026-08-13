@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tutorial, Category } from "@/lib/types";
 import { Search, BookOpen, Users, Clock, ChevronRight } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 
 export default function Tutorials() {
   const { user } = useAuth();

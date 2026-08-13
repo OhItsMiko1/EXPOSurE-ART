@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { Artwork, Commission } from "@/lib/types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

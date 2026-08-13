@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from "@/lib/local-auth";
 import { useLocation } from 'wouter';
 
 // Make sure to call loadStripe outside of a component's render to avoid

@@ -11,7 +11,7 @@ import ArtworkCard from "@/components/ui/ArtworkCard";
 import CategoryFilter from "@/components/ui/CategoryFilter";
 import { Instagram, Twitter, Facebook, Globe, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { 
   Dialog, 
   DialogContent, 

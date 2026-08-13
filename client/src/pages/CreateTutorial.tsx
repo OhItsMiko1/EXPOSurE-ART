@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/local-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
