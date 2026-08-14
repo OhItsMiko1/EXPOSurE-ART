@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "yUw3CYs4L8bUlQ-ijKjrV"
+uri = "file://EXPOSurE-ART.zip"
+type = "unspecified"
+title = "EXPOSurE-ART Project Files"
+
+[[outputs]]
+id = "hkWE4vNFxrisSN1Cjl5ET"
+uri = "file://EXPOSurE-ART-complete.zip"
+type = "unspecified"
+title = "EXPOSurE-ART - Complete Source Code"
+
+[[outputs]]
+id = "GXhRVJqLWx0fubEaklG-X"
+uri = "file://EXPOSurE-ART.tar.gz"
+type = "unspecified"
+title = "EXPOSurE-ART - Project Files (tar.gz)"
+
+[[outputs]]
+id = "g9SsOgaEamL_YI_QuYpDp"
+uri = "file://EXPOSurE-ART-source.txt"
+type = "text"
+title = "EXPOSurE-ART - All Source Code (.txt)"

@@ -1,0 +1,132 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.artist-text {
+  @apply text-[#FF00FF];
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased text-foreground;
+    background-color: #f8f9fa;
+    background-image: 
+      radial-gradient(ellipse at top left, rgba(147, 197, 253, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(196, 181, 253, 0.15) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Arial', sans-serif;
+  }
+
+  /* Primary color based elements */
+  .artistic-border {
+    @apply relative overflow-hidden rounded-lg;
+  }
+
+  .artistic-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg p-[2px] bg-gradient-to-r from-red-500/80 via-yellow-500/50 to-blue-500/80 -z-10;
+    animation: border-animation 8s linear infinite;
+  }
+
+  .artistic-card {
+    @apply bg-white/95 backdrop-blur-sm border border-gray-100 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1;
+  }
+
+  .heading-gradient {
+    @apply font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-red-600;
+  }
+  
+  .art-frame {
+    @apply relative p-1 rounded-md bg-gradient-to-br from-blue-100 via-yellow-100 to-red-100 shadow-lg transition-transform duration-300 hover:scale-[1.01];
+  }
+  
+  .art-frame::before {
+    content: '';
+    @apply absolute inset-0 rounded-md border-2 border-blue-300/50 pointer-events-none;
+  }
+  
+  /* Glitter Effects */
+  .glitter {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .glitter::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 30%, white 1px, transparent 1px),
+      radial-gradient(circle at 40% 70%, white 1px, transparent 1px),
+      radial-gradient(circle at 60% 20%, white 1px, transparent 1px),
+      radial-gradient(circle at 80% 50%, white 1px, transparent 1px);
+    background-size: 100px 100px;
+    opacity: 0.4;
+    animation: glitter-animation 10s linear infinite;
+    pointer-events: none;
+  }
+  
+  .brush-stroke-bg {
+    background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='brush' patternUnits='userSpaceOnUse' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23f0f0f0' stroke-width='2' d='M-10,20 q50,-40 100,0 q50,40 100,0' /%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23brush)'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+  
+  .ink-splash {
+    position: relative;
+  }
+  
+  .ink-splash::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23007bff' d='M30,50 Q40,20 50,50 Q60,80 70,50 Q60,20 50,50 Q40,80 30,50 Z'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    bottom: -10px;
+    right: -10px;
+    transform: rotate(35deg);
+  }
+  
+  /* Button hover effects with primary colors */
+  .btn-primary-hover {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-primary-hover::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 opacity-0 transition-opacity duration-300;
+  }
+  
+  .btn-primary-hover:hover::before {
+    @apply opacity-10;
+  }
+}
+
+@keyframes border-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes glitter-animation {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100px 100px;
+  }
+}
