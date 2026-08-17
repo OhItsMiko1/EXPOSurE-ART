@@ -61,9 +61,9 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 if (!process.env.STRIPE_SECRET_KEY) {
   console.warn("Warning: STRIPE_SECRET_KEY is not set. Stripe functionality will not work.");
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16' as any // Type assertion to resolve LSP issue
-});
+}) : null;
 
 // Configure multer for file uploads
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   // Stripe payment intent for premium subscription
   router.post('/create-payment-intent', async (req: Request, res: Response) => {
     try {
-      if (!process.env.STRIPE_SECRET_KEY) {
+      if (!stripe) {
         return res.status(500).json({ message: 'Stripe is not configured' });
       }
       
