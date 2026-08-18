@@ -3,7 +3,7 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "./lib/local-auth";
+import { AuthProvider, useAuth } from "./lib/local-auth";
 
 // Page imports
 import Home from "@/pages/Home";
@@ -154,6 +154,8 @@ function DebugInfo() {
 }
 
 function Router() {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -182,7 +184,7 @@ function Router() {
         </Switch>
       </main>
       <Footer />
-      <DebugInfo />
+      {user?.isAdmin && <DebugInfo />}
     </div>
   );
 }
