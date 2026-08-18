@@ -15,6 +15,9 @@ import fs from "fs";
 import { z } from "zod";
 import { ZodError } from "zod-validation-error";
 import Stripe from "stripe";
+import bcrypt from "bcryptjs";
+
+const BCRYPT_SALT_ROUNDS = 10;
 // Add auth middleware
 declare global {
   namespace Express {
@@ -119,8 +122,9 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       if (existingEmail) {
         return res.status(409).json({ message: "Email already exists" });
       }
-      
-      const newUser = await storage.createUser(userData);
+
+      const hashedPassword = await bcrypt.hash(userData.password, BCRYPT_SALT_ROUNDS);
+      const newUser = await storage.createUser({ ...userData, password: hashedPassword });
       // Don't return password in response
       const { password, ...userWithoutPassword } = newUser;
       
@@ -143,7 +147,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
       
       const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
+      if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
@@ -245,7 +249,8 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       });
       
       // Update the user's password
-      const user = await storage.updateUserPassword(resetToken.userId, newPassword);
+      const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+      const user = await storage.updateUserPassword(resetToken.userId, hashedPassword);
       console.log('User password updated:', !!user);
       
       if (!user) {

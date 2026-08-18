@@ -1,4 +1,5 @@
-import { 
+import bcrypt from "bcryptjs";
+import {
   users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription,
   categories, type Category, type InsertCategory,
   artworks, type Artwork, type InsertArtwork,
@@ -1261,7 +1262,7 @@ if (!process.env.VITEST) (async () => {
   if (!existingAdmin) {
     await storage.createUser({
       username: "admin",
-      password: "admin123",
+      password: await bcrypt.hash("admin123", 10),
       email: "admin@exposure.art",
       fullName: "Admin",
       isArtist: false,
