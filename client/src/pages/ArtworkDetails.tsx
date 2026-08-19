@@ -51,11 +51,9 @@ export default function ArtworkDetails() {
     enabled: !!artwork?.artistId,
   });
   
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to cart",
-      description: `${artwork?.title} has been added to your cart.`,
-    });
+  const handleBuyNow = () => {
+    if (!artwork) return;
+    navigate(`/checkout/artwork/${artwork.id}`);
   };
   
   const handleLike = () => {
@@ -244,9 +242,9 @@ export default function ArtworkDetails() {
           {/* Action Buttons */}
           <div className="flex flex-col space-y-3">
             {artwork.forSale ? (
-              <Button size="lg" onClick={handleAddToCart}>
+              <Button size="lg" onClick={handleBuyNow}>
                 <ShoppingBag className="mr-2 h-5 w-5" />
-                Add to Cart
+                Buy Now
               </Button>
             ) : (
               <Dialog>

@@ -517,6 +517,38 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
       console.error('Error creating payment intent:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Stripe payment intent for a specific artwork purchase
+  router.post('/artworks/:id/create-payment-intent', async (req: Request, res: Response) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ message: 'Stripe is not configured' });
+      }
+
+      const artwork = await storage.getArtwork(Number(req.params.id));
+      if (!artwork) {
+        return res.status(404).json({ message: 'Artwork not found' });
+      }
+      if (!artwork.forSale) {
+        return res.status(400).json({ message: 'This artwork is not for sale' });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(artwork.price * 100), // Amount in cents
+        currency: 'usd',
+        payment_method_types: ['card'],
+        metadata: {
+          artworkId: String(artwork.id),
+          artworkTitle: artwork.title
+        }
+      });
+
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      console.error('Error creating payment intent:', error);
       res.status(500).json({ message: error.message || 'Failed to create payment intent' });
     }
   });

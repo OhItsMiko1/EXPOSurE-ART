@@ -7,14 +7,16 @@ import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from "@/lib/local-auth";
-import { useLocation } from 'wouter';
+import { useLocation, useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import type { Artwork } from '@/lib/types';
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 // Payment form component
-const PaymentForm = () => {
+const PaymentForm = ({ returnPath }: { returnPath: string }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,20 +26,20 @@ const PaymentForm = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!stripe || !elements) {
       // Stripe.js hasn't loaded yet
       return;
     }
-    
+
     setIsProcessing(true);
     setErrorMessage('');
-    
+
     try {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin + '/subscription',
+          return_url: window.location.origin + returnPath,
         }
       });
       
@@ -67,7 +69,7 @@ const PaymentForm = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate('/subscription')}
+          onClick={() => navigate(returnPath)}
           disabled={isProcessing}
           className="flex-1"
         >
@@ -93,11 +95,19 @@ const PaymentForm = () => {
 };
 
 export default function Checkout() {
+  const { id: artworkId } = useParams<{ id?: string }>();
   const [clientSecret, setClientSecret] = useState('');
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  
+
+  const returnPath = artworkId ? `/artwork/${artworkId}` : '/subscription';
+
+  const { data: artwork } = useQuery<Artwork>({
+    queryKey: [`/api/artworks/${artworkId}`],
+    enabled: !!artworkId,
+  });
+
   useEffect(() => {
     // Check authentication
     if (!user) {
@@ -109,14 +119,16 @@ export default function Checkout() {
       navigate('/login');
       return;
     }
-    
+
     // Create PaymentIntent as soon as the page loads
     const createPaymentIntent = async () => {
       try {
-        const response = await apiRequest('POST', '/api/create-payment-intent', { 
-          amount: 1000 // $10.00 for premium subscription
-        });
-        
+        const response = artworkId
+          ? await apiRequest('POST', `/api/artworks/${artworkId}/create-payment-intent`)
+          : await apiRequest('POST', '/api/create-payment-intent', {
+              amount: 1000 // $10.00 for premium subscription
+            });
+
         const data = await response.json();
         setClientSecret(data.clientSecret);
       } catch (error) {
@@ -128,9 +140,9 @@ export default function Checkout() {
         });
       }
     };
-    
+
     createPaymentIntent();
-  }, [user, navigate, toast]);
+  }, [user, navigate, toast, artworkId]);
   
   if (!clientSecret) {
     return (
@@ -166,12 +178,14 @@ export default function Checkout() {
         <CardHeader>
           <CardTitle className="text-2xl bg-gradient-to-r from-fuchsia-600 to-pink-600 text-transparent bg-clip-text">Complete your payment</CardTitle>
           <CardDescription>
-            Secure payment for your EXPOSurE.ART Premium subscription
+            {artworkId
+              ? `Secure payment for "${artwork?.title ?? 'this artwork'}"`
+              : 'Secure payment for your EXPOSurE.ART Premium subscription'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Elements stripe={stripePromise} options={options}>
-            <PaymentForm />
+            <PaymentForm returnPath={returnPath} />
           </Elements>
         </CardContent>
       </Card>

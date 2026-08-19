@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Artwork } from "@/lib/types";
@@ -12,6 +12,7 @@ interface ArtworkCardProps {
 
 export default function ArtworkCard({ artwork }: ArtworkCardProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [isLiked, setIsLiked] = useState(false);
   
   const handleLike = (e: React.MouseEvent) => {
@@ -32,14 +33,11 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
     }
   };
   
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    toast({
-      title: "Added to cart",
-      description: `${artwork.title} has been added to your cart.`,
-    });
+
+    navigate(`/checkout/artwork/${artwork.id}`);
   };
   
   return (
@@ -59,8 +57,8 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
           >
             <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} />
           </Button>
-          <Button 
-            onClick={handleAddToCart}
+          <Button
+            onClick={handleBuyNow}
             className="bg-white p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 mx-1"
             size="icon"
             variant="outline"

@@ -175,6 +175,7 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/checkout" component={Checkout} />
+          <Route path="/checkout/artwork/:id" component={Checkout} />
           <Route path="/about" component={AboutUs} />
           <Route path="/tutorials" component={Tutorials} />
           <Route path="/tutorials/create" component={CreateTutorial} />
