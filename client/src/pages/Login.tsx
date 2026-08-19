@@ -17,8 +17,20 @@ import { ArrowLeft, User, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const { login, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
   const { toast } = useToast();
+
+  const onGoogleSignIn = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Google sign-in failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -134,9 +146,19 @@ export default function Login() {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Firebase social login temporarily disabled</span>
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
             </div>
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mt-4"
+            disabled={isLoading}
+            onClick={onGoogleSignIn}
+          >
+            Continue with Google
+          </Button>
         </div>
       </div>
     </div>

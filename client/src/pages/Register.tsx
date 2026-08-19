@@ -20,8 +20,21 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
-  const { register, isLoading } = useAuth();
-  
+  const { register, loginWithGoogle, isLoading } = useAuth();
+  const { toast } = useToast();
+
+  const onGoogleSignIn = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Google sign-in failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -38,8 +51,6 @@ export default function Register() {
     },
   });
 
-  const { toast } = useToast();
-  
   const onSubmit = async (values: RegisterFormValues) => {
     try {
       const userData = {
@@ -324,6 +335,27 @@ export default function Register() {
             </div>
           </form>
         </Form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mt-4"
+            disabled={isLoading}
+            onClick={onGoogleSignIn}
+          >
+            Continue with Google
+          </Button>
+        </div>
       </div>
     </div>
   );

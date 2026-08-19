@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { signInWithGoogle } from "@/lib/firebase";
 import type { User as SchemaUser } from "@shared/schema";
 
 // The server strips `password` before sending a user to the client
@@ -14,6 +15,7 @@ type AuthContextType = {
   isLoading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -34,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   error: null,
   login: async () => {},
+  loginWithGoogle: async () => {},
   register: async () => {},
   logout: async () => {},
   checkAuth: async () => {},
@@ -100,6 +103,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast({
         variant: "destructive",
         title: "Login error",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Google sign-in via Firebase
+  const loginWithGoogle = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const credential = await signInWithGoogle();
+      const firebaseUser = credential.user;
+
+      const response = await apiRequest("POST", "/api/users/firebase-auth", {
+        email: firebaseUser.email,
+        firebaseUid: firebaseUser.uid,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setLocation("/");
+        toast({
+          title: "Login successful",
+          description: `Welcome, ${userData.fullName || userData.username}!`,
+        });
+      } else {
+        const data = await response.json();
+        setError(data.message || "Google sign-in failed");
+        toast({
+          variant: "destructive",
+          title: "Google sign-in failed",
+          description: data.message || "Please try again.",
+        });
+      }
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      setError("An unexpected error occurred. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Google sign-in error",
         description: "An unexpected error occurred. Please try again.",
       });
     } finally {
@@ -182,6 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         login,
+        loginWithGoogle,
         register,
         logout,
         checkAuth,

@@ -294,15 +294,12 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       
       // Check if user exists by email
       let user = await storage.getUserByEmail(email);
-      
-      if (user) {
-        // User exists, return the user
-        const { password: _, ...userWithoutPassword } = user;
-        return res.status(200).json(userWithoutPassword);
-      } else {
+      const isNewUser = !user;
+
+      if (!user) {
         // User doesn't exist, create a new one
         const username = email.split('@')[0] + '_' + Date.now().toString().slice(-4);
-        const newUser = await storage.createUser({
+        user = await storage.createUser({
           username,
           password: '', // No password for social login
           email,
@@ -312,10 +309,19 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
           profileImage: photoURL || '',
           firebaseUid
         });
-        
-        const { password: _, ...userWithoutPassword } = newUser;
-        return res.status(201).json(userWithoutPassword);
       }
+
+      // Set auth cookie, same as the regular login route
+      res.cookie('auth_token', user.username, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        path: '/',
+        sameSite: 'lax'
+      });
+
+      const { password: _, ...userWithoutPassword } = user;
+      return res.status(isNewUser ? 201 : 200).json(userWithoutPassword);
     } catch (error) {
       console.error("Firebase auth error:", error);
       res.status(500).json({ message: "Server error" });
