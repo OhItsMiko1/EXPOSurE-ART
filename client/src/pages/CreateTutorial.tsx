@@ -246,7 +246,7 @@ export default function CreateTutorial() {
                           <FormLabel>Difficulty Level</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            defaultValue={field.value ?? undefined}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -275,10 +275,11 @@ export default function CreateTutorial() {
                         <FormItem>
                           <FormLabel>Duration (minutes)</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="e.g. 30" 
+                            <Input
+                              type="number"
+                              placeholder="e.g. 30"
                               {...field}
+                              value={field.value ?? ''}
                               onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                             />
                           </FormControl>

@@ -209,7 +209,7 @@ export default function Commission() {
             </div>
             
             <div className="mt-10 text-center">
-              <Button size="lg" onClick={() => document.querySelector('[data-value="request-commission"]')?.click()}>
+              <Button size="lg" onClick={() => document.querySelector<HTMLElement>('[data-value="request-commission"]')?.click()}>
                 Start Your Commission Request
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -344,11 +344,12 @@ export default function Commission() {
                             <FormItem>
                               <FormLabel>Budget (USD)</FormLabel>
                               <FormControl>
-                                <Input 
+                                <Input
                                   type="number"
                                   placeholder="e.g., 250"
                                   disabled={commissionMutation.isPending || !user}
                                   {...field}
+                                  value={field.value ?? ''}
                                   onChange={(e) => {
                                     const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
                                     field.onChange(value);

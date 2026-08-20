@@ -106,10 +106,10 @@ const PaymentForm = ({ onSuccess, onError, onCancel }: PaymentFormProps) => {
 };
 
 export default function SubscriptionPlans() {
-  const { user, refreshUser } = useAuth();
+  const { user, checkAuth } = useAuth();
   const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'premium'>(
-    user?.subscriptionTier || 'free'
+    (user?.subscriptionTier as 'free' | 'premium') || 'free'
   );
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
@@ -154,7 +154,7 @@ export default function SubscriptionPlans() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id] });
-      refreshUser();
+      checkAuth();
       toast({
         title: 'Subscription updated!',
         description: selectedPlan === 'premium' 

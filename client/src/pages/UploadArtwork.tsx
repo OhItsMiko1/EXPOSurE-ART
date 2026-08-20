@@ -145,10 +145,10 @@ export default function UploadArtwork() {
   
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <Button 
-        variant="ghost" 
-        className="mb-6" 
-        onClick={() => navigate(-1)}
+      <Button
+        variant="ghost"
+        className="mb-6"
+        onClick={() => window.history.back()}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
@@ -189,11 +189,12 @@ export default function UploadArtwork() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Describe your artwork, its inspiration, techniques, etc." 
+                      <Textarea
+                        placeholder="Describe your artwork, its inspiration, techniques, etc."
                         className="min-h-32"
                         disabled={uploadMutation.isPending}
-                        {...field} 
+                        {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />
@@ -266,10 +267,11 @@ export default function UploadArtwork() {
                     <FormItem>
                       <FormLabel>Medium</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g., Oil, Acrylic, Digital" 
+                        <Input
+                          placeholder="e.g., Oil, Acrylic, Digital"
                           disabled={uploadMutation.isPending}
-                          {...field} 
+                          {...field}
+                          value={field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -284,10 +286,11 @@ export default function UploadArtwork() {
                     <FormItem>
                       <FormLabel>Dimensions</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g., 24in x 36in" 
+                        <Input
+                          placeholder="e.g., 24in x 36in"
                           disabled={uploadMutation.isPending}
-                          {...field} 
+                          {...field}
+                          value={field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -304,7 +307,7 @@ export default function UploadArtwork() {
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                           disabled={uploadMutation.isPending}
                         />
@@ -326,7 +329,7 @@ export default function UploadArtwork() {
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                           disabled={uploadMutation.isPending}
                         />
@@ -348,7 +351,7 @@ export default function UploadArtwork() {
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                           disabled={uploadMutation.isPending}
                         />
@@ -380,7 +383,7 @@ export default function UploadArtwork() {
                               const value = e.target.value === "" ? undefined : parseInt(e.target.value);
                               field.onChange(value);
                             }}
-                            value={field.value === undefined ? "" : field.value}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormDescription>

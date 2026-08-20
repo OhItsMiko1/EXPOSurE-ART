@@ -91,7 +91,7 @@ export default function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="rounded-full p-0">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.profileImage} alt={user.username} />
+                        <AvatarImage src={user.profileImage ?? undefined} alt={user.username} />
                         <AvatarFallback className="bg-primary text-white">
                           {user.username.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -196,7 +196,7 @@ export default function Navbar() {
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.profileImage} alt={user.username} />
+                      <AvatarImage src={user.profileImage ?? undefined} alt={user.username} />
                       <AvatarFallback className="bg-primary text-white">
                         {user.username.substring(0, 2).toUpperCase()}
                       </AvatarFallback>

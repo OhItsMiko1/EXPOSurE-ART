@@ -78,7 +78,7 @@ export default function ArtworkDetails() {
         <Button 
           variant="ghost" 
           className="mb-6" 
-          onClick={() => navigate(-1)}
+          onClick={() => window.history.back()}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
@@ -155,7 +155,7 @@ export default function ArtworkDetails() {
       <Button 
         variant="ghost" 
         className="mb-6" 
-        onClick={() => navigate(-1)}
+        onClick={() => window.history.back()}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back

@@ -18,6 +18,7 @@ export type User = {
   bio?: string;
   location?: string;
   isArtist: boolean;
+  isAdmin?: boolean;
   profileImage?: string;
   socialLinks?: string;
   // Firebase authentication fields
