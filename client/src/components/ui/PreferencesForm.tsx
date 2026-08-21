@@ -82,10 +82,7 @@ export default function PreferencesForm() {
   const { isPending, mutate: updatePreferences } = useMutation({
     mutationFn: async (data: PreferencesFormValues) => {
       if (!user) throw new Error('User not authenticated');
-      return apiRequest(`/api/users/${user.id}/preferences`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      return apiRequest('POST', `/api/users/${user.id}/preferences`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id] });

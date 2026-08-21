@@ -16,6 +16,7 @@ import { z } from "zod";
 import { ZodError } from "zod-validation-error";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
+import { sendPasswordResetEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 10;
 // Add auth middleware

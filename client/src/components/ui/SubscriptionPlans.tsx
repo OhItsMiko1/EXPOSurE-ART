@@ -121,10 +121,7 @@ export default function SubscriptionPlans() {
     
     try {
       setIsInitiatingPayment(true);
-      const response = await apiRequest('/api/create-payment-intent', { 
-        method: 'POST',
-        body: JSON.stringify({})
-      });
+      const response = await apiRequest('POST', '/api/create-payment-intent', {});
       
       const data = await response.json();
       setClientSecret(data.clientSecret);
@@ -145,11 +142,8 @@ export default function SubscriptionPlans() {
   const { isPending: isSubscribing, mutate: updateSubscription } = useMutation({
     mutationFn: async (tier: 'free' | 'premium') => {
       if (!user) throw new Error('User not authenticated');
-      return apiRequest(`/api/users/${user.id}/subscription`, {
-        method: 'POST',
-        body: JSON.stringify({
-          subscriptionTier: tier
-        })
+      return apiRequest('POST', `/api/users/${user.id}/subscription`, {
+        subscriptionTier: tier
       });
     },
     onSuccess: () => {

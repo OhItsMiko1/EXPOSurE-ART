@@ -91,36 +91,6 @@ export interface IStorage {
   markRecommendationAsViewed(id: number): Promise<Recommendation | undefined>;
   generateRecommendationsForUser(userId: number): Promise<Recommendation[]>;
 
-  // Learning paths operations
-  getLearningPaths(): Promise<LearningPath[]>;
-  getLearningPath(id: number): Promise<LearningPath | undefined>;
-  getLearningPathsByCategory(categoryId: number): Promise<LearningPath[]>;
-  getLearningPathsByLevel(level: string): Promise<LearningPath[]>;
-  createLearningPath(path: InsertLearningPath): Promise<LearningPath>;
-  getLearningPathSteps(pathId: number): Promise<LearningPathStep[]>;
-  createLearningPathStep(step: InsertLearningPathStep): Promise<LearningPathStep>;
-  getUserLearningProgress(userId: number): Promise<UserLearningProgress[]>;
-  updateUserLearningProgress(progressId: number, completed: boolean): Promise<UserLearningProgress | undefined>;
-  createUserLearningProgress(progress: InsertUserLearningProgress): Promise<UserLearningProgress>;
-
-  // Skills operations
-  getSkills(): Promise<Skill[]>;
-  getSkill(id: number): Promise<Skill | undefined>;
-  getSkillsByCategory(categoryId: number): Promise<Skill[]>;
-  createSkill(skill: InsertSkill): Promise<Skill>;
-  getUserSkills(userId: number): Promise<UserSkill[]>;
-  updateUserSkill(userId: number, skillId: number, level: number): Promise<UserSkill | undefined>;
-  createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill>;
-
-  // Challenge operations
-  getChallenges(): Promise<Challenge[]>;
-  getActiveChallenges(): Promise<Challenge[]>;
-  getChallenge(id: number): Promise<Challenge | undefined>;
-  createChallenge(challenge: InsertChallenge): Promise<Challenge>;
-  getChallengeSubmissions(challengeId: number): Promise<ChallengeSubmission[]>;
-  getUserChallengeSubmissions(userId: number): Promise<ChallengeSubmission[]>;
-  createChallengeSubmission(submission: InsertChallengeSubmission): Promise<ChallengeSubmission>;
-
   // Tutorial operations
   getTutorials(): Promise<Tutorial[]>;
   getTutorial(id: number): Promise<Tutorial | undefined>;
@@ -129,24 +99,6 @@ export interface IStorage {
   getTutorialSteps(tutorialId: number): Promise<TutorialStep[]>;
   createTutorialStep(step: InsertTutorialStep): Promise<TutorialStep>;
   incrementTutorialViews(tutorialId: number): Promise<Tutorial | undefined>;
-
-  // Collaboration operations
-  getCollaborations(): Promise<Collaboration[]>;
-  getCollaboration(id: number): Promise<Collaboration | undefined>;
-  getUserCollaborations(userId: number): Promise<Collaboration[]>;
-  createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration>;
-  getCollaborationMembers(collaborationId: number): Promise<CollaborationMember[]>;
-  addCollaborationMember(member: InsertCollaborationMember): Promise<CollaborationMember>;
-  getCollaborationArtworks(collaborationId: number): Promise<CollaborationArtwork[]>;
-  createCollaborationArtwork(artwork: InsertCollaborationArtwork): Promise<CollaborationArtwork>;
-  addCollaborationEdit(edit: InsertCollaborationEdit): Promise<CollaborationEdit>;
-  getCollaborationEdits(artworkId: number): Promise<CollaborationEdit[]>;
-
-  // Social sharing operations
-  createSocialShare(share: InsertSocialShare): Promise<SocialShare>;
-  getUserSocialShares(userId: number): Promise<SocialShare[]>;
-  getArtworkSocialShares(artworkId: number): Promise<SocialShare[]>;
-  updateSocialShareEngagement(shareId: number, engagement: {likes: number, comments: number, shares: number}): Promise<SocialShare | undefined>;
 
   // Password reset operations already defined above
 }
@@ -232,12 +184,16 @@ export class MemStorage implements IStorage {
       bio: insertUser.bio ?? null,
       location: insertUser.location ?? null,
       isArtist: insertUser.isArtist ?? false,
+      isAdmin: false,
       profileImage: insertUser.profileImage ?? null,
       socialLinks: insertUser.socialLinks ?? null,
+      firebaseUid: insertUser.firebaseUid ?? null,
       // Default values for subscription fields
       subscriptionTier: 'free',
       subscriptionStartDate: null,
       subscriptionEndDate: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
       // Default values for preference fields
       preferredCategories: null,
       preferredStyles: null,
@@ -621,12 +577,16 @@ export class MemStorage implements IStorage {
       ...insertTutorial,
       description: insertTutorial.description ?? null,
       imageUrl: insertTutorial.imageUrl ?? null,
+      videoUrl: insertTutorial.videoUrl ?? null,
+      difficulty: insertTutorial.difficulty ?? null,
+      publishDate: insertTutorial.publishDate ?? null,
       durationMinutes: insertTutorial.durationMinutes ?? null,
       published: insertTutorial.published ?? false,
-      views: 0
+      views: 0,
+      likes: 0
     };
 
-    const tutorial: Tutorial = { ...tutorialToInsert, id, createdAt };
+    const tutorial: Tutorial = { ...tutorialToInsert, id, createdAt, updatedAt: createdAt };
     this.tutorials.set(id, tutorial);
     return tutorial;
   }
@@ -1266,7 +1226,10 @@ if (!process.env.VITEST) (async () => {
       email: "admin@exposure.art",
       fullName: "Admin",
       isArtist: false,
+      // InsertUser deliberately excludes isAdmin so the public /register
+      // route (which validates against this same type) can't self-grant
+      // admin. This bootstrap is the one trusted, hardcoded exception.
       isAdmin: true
-    });
+    } as InsertUser);
   }
 })();
