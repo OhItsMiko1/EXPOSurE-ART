@@ -17,8 +17,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      # Pre-existing type errors (~30, unrelated to this workflow) mean `tsc`
-      # isn't clean yet. Keep it visible in CI output without blocking merges
-      # until that debt is paid down separately.
       - run: npm run check
-        continue-on-error: true
