@@ -10,13 +10,12 @@ import {
   insertPasswordResetTokenSchema
 } from "@shared/schema";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { z } from "zod";
 import { ZodError } from "zod-validation-error";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail } from "./email";
+import { v2 as cloudinary } from "cloudinary";
 
 const BCRYPT_SALT_ROUNDS = 10;
 // Add auth middleware
@@ -69,24 +68,12 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
   apiVersion: '2023-10-16' as any // Type assertion to resolve LSP issue
 }) : null;
 
-// Configure multer for file uploads
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage_config = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage_config,
+// Configure multer to hold uploaded files in memory (not on local disk --
+// Render's filesystem is ephemeral and gets wiped on every deploy, which
+// is why file uploads used to disappear after a redeploy). The buffer gets
+// streamed to Cloudinary in uploadImageBuffer below.
+const upload = multer({
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
@@ -99,14 +86,37 @@ const upload = multer({
   }
 });
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+function uploadImageBuffer(buffer: Buffer): Promise<string> {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return Promise.reject(new Error('Image upload is not configured'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'exposure-art' },
+      (error, result) => {
+        if (error || !result) {
+          reject(error || new Error('Image upload failed'));
+        } else {
+          resolve(result.secure_url);
+        }
+      }
+    );
+    uploadStream.end(buffer);
+  });
+}
+
 export async function registerRoutes(app: Express, httpServer?: Server): Promise<Server> {
   const router = express.Router();
 
   // Apply auth middleware to all routes
   router.use(authMiddleware);
-  
-  // Serve uploaded files
-  app.use('/uploads', express.static(uploadsDir));
 
   // User routes
   router.post('/users/register', async (req: Request, res: Response) => {
@@ -622,7 +632,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
         return res.status(400).json({ message: "Image is required" });
       }
       
-      const imageUrl = `/uploads/${req.file.filename}`;
+      const imageUrl = await uploadImageBuffer(req.file.buffer);
       const artworkData = insertArtworkSchema.parse({
         ...req.body,
         imageUrl,
@@ -641,7 +651,8 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Validation failed", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Server error" });
+        console.error('Error creating artwork:', error);
+        res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
       }
     }
   });
@@ -670,16 +681,17 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       
       // Handle file upload if new image provided
       if (req.file) {
-        updateData.imageUrl = `/uploads/${req.file.filename}`;
+        updateData.imageUrl = await uploadImageBuffer(req.file.buffer);
       }
-      
+
       const updatedArtwork = await storage.updateArtwork(id, updateData);
       res.status(200).json(updatedArtwork);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Validation failed", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Server error" });
+        console.error('Error updating artwork:', error);
+        res.status(500).json({ message: error instanceof Error ? error.message : "Server error" });
       }
     }
   });
@@ -856,7 +868,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       // Handle image upload if provided
       let imageUrl = req.body.imageUrl;
       if (req.file) {
-        imageUrl = `/uploads/${req.file.filename}`;
+        imageUrl = await uploadImageBuffer(req.file.buffer);
       }
       
       // Validate request body
@@ -876,7 +888,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       return res.status(201).json(tutorial);
     } catch (error) {
       console.error("Error creating tutorial:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
     }
   });
   
@@ -906,7 +918,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       // Handle image upload if provided
       let imageUrl = req.body.imageUrl;
       if (req.file) {
-        imageUrl = `/uploads/${req.file.filename}`;
+        imageUrl = await uploadImageBuffer(req.file.buffer);
       }
       
       // Validate request body
@@ -925,7 +937,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       return res.status(201).json(step);
     } catch (error) {
       console.error("Error adding tutorial step:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
     }
   });
   
