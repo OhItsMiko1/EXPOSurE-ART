@@ -482,6 +482,11 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   router.post('/users/:id/subscription', async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
+
+      if (!req.user || (req.user.id !== userId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: 'You can only update your own subscription' });
+      }
+
       const subscription = req.body;
       const updatedUser = await storage.updateUserSubscription(userId, subscription);
       
@@ -661,11 +666,15 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     try {
       const id = parseInt(req.params.id);
       const artwork = await storage.getArtwork(id);
-      
+
       if (!artwork) {
         return res.status(404).json({ message: "Artwork not found" });
       }
-      
+
+      if (!req.user || (req.user.id !== artwork.artistId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: "You can only edit your own artwork" });
+      }
+
       let updateData: any = { ...req.body };
       
       // Handle numeric fields
@@ -700,11 +709,15 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     try {
       const id = parseInt(req.params.id);
       const artwork = await storage.getArtwork(id);
-      
+
       if (!artwork) {
         return res.status(404).json({ message: "Artwork not found" });
       }
-      
+
+      if (!req.user || (req.user.id !== artwork.artistId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: "You can only delete your own artwork" });
+      }
+
       const deleted = await storage.deleteArtwork(id);
       
       if (deleted) {

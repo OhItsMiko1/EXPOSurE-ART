@@ -167,6 +167,7 @@ function Router() {
           <Route path="/artist/:id" component={ArtistProfile} />
           <Route path="/dashboard" component={ArtistDashboard} />
           <Route path="/upload" component={UploadArtwork} />
+          <Route path="/edit-artwork/:id" component={UploadArtwork} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
           <Route path="/forgot-password" component={ForgotPassword} />

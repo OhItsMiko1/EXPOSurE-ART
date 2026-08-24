@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useAuth } from "@/lib/local-auth";
-import { uploadArtworkFormSchema, UploadArtworkFormValues, Category } from "@/lib/types";
+import { uploadArtworkFormSchema, editArtworkFormSchema, UploadArtworkFormValues, Category, Artwork } from "@/lib/types";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -31,29 +31,37 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Upload, ImagePlus } from "lucide-react";
 
 export default function UploadArtwork() {
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = !!id;
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
+
   // Redirect if not logged in or not an artist
   if (!user) {
     navigate("/login");
     return null;
   }
-  
+
   if (!user.isArtist) {
     navigate("/");
     return null;
   }
-  
+
   // Fetch categories
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
-  
+
+  // Fetch the existing artwork when editing
+  const { data: existingArtwork, isLoading: isLoadingArtwork } = useQuery<Artwork>({
+    queryKey: [`/api/artworks/${id}`],
+    enabled: isEditMode,
+  });
+
   const form = useForm<UploadArtworkFormValues>({
-    resolver: zodResolver(uploadArtworkFormSchema),
+    resolver: zodResolver(isEditMode ? editArtworkFormSchema : uploadArtworkFormSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -69,7 +77,41 @@ export default function UploadArtwork() {
       image: undefined,
     },
   });
-  
+
+  // Once the existing artwork loads, populate the form and image preview
+  // (react-hook-form's defaultValues only apply on mount, so editing needs
+  // an explicit reset once the fetch resolves).
+  useEffect(() => {
+    if (!existingArtwork) return;
+
+    if (existingArtwork.artistId !== user.id && !user.isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Not allowed",
+        description: "You can only edit your own artwork.",
+      });
+      navigate("/dashboard");
+      return;
+    }
+
+    form.reset({
+      title: existingArtwork.title,
+      description: existingArtwork.description ?? "",
+      price: existingArtwork.price,
+      artistId: existingArtwork.artistId,
+      categoryId: existingArtwork.categoryId,
+      medium: existingArtwork.medium ?? "",
+      dimensions: existingArtwork.dimensions ?? "",
+      forSale: existingArtwork.forSale,
+      isOriginal: existingArtwork.isOriginal,
+      limitedEdition: existingArtwork.limitedEdition ?? false,
+      editionCount: existingArtwork.editionCount,
+      image: undefined,
+    });
+    setImagePreview(existingArtwork.imageUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingArtwork]);
+
   // Watch form values for conditional rendering
   const limitedEdition = form.watch("limitedEdition");
   
@@ -105,35 +147,38 @@ export default function UploadArtwork() {
         }
       });
       
-      const response = await fetch("/api/artworks", {
-        method: "POST",
+      const response = await fetch(isEditMode ? `/api/artworks/${id}` : "/api/artworks", {
+        method: isEditMode ? "PUT" : "POST",
         body: formData,
         credentials: "include",
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Failed to upload artwork");
+        throw new Error(errorText || `Failed to ${isEditMode ? "update" : "upload"} artwork`);
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "Artwork Uploaded",
-        description: "Your artwork has been successfully uploaded.",
+        title: isEditMode ? "Artwork Updated" : "Artwork Uploaded",
+        description: `Your artwork has been successfully ${isEditMode ? "updated" : "uploaded"}.`,
       });
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/artworks'] });
-      
+      if (isEditMode) {
+        queryClient.invalidateQueries({ queryKey: [`/api/artworks/${id}`] });
+      }
+
       // Navigate to the artwork page
       navigate(`/artwork/${data.id}`);
     },
     onError: (error) => {
       toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload artwork",
+        title: isEditMode ? "Update Failed" : "Upload Failed",
+        description: error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "upload"} artwork`,
         variant: "destructive",
       });
     },
@@ -155,8 +200,12 @@ export default function UploadArtwork() {
       </Button>
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Upload Artwork</h1>
-        <p className="text-gray-600">Share your artwork with the ArtistSpace community</p>
+        <h1 className="text-3xl font-bold text-gray-800">{isEditMode ? "Edit Artwork" : "Upload Artwork"}</h1>
+        <p className="text-gray-600">
+          {isEditMode
+            ? "Update your artwork's details or image"
+            : "Share your artwork with the ArtistSpace community"}
+        </p>
       </div>
       
       <Form {...form}>
@@ -455,13 +504,15 @@ export default function UploadArtwork() {
           </div>
           
           <div className="border-t pt-6">
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               size="lg"
-              disabled={uploadMutation.isPending || !imagePreview}
+              disabled={uploadMutation.isPending || !imagePreview || (isEditMode && isLoadingArtwork)}
             >
-              {uploadMutation.isPending ? "Uploading..." : "Upload Artwork"}
+              {uploadMutation.isPending
+                ? (isEditMode ? "Saving..." : "Uploading...")
+                : (isEditMode ? "Save Changes" : "Upload Artwork")}
             </Button>
           </div>
         </form>

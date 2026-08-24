@@ -32,6 +32,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleToggleSubscription = async (targetUser: User) => {
+    const nextTier = targetUser.subscriptionTier === 'premium' ? 'free' : 'premium';
+    try {
+      const response = await fetch(`/api/users/${targetUser.id}/subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionTier: nextTier }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${targetUser.username} is now on the ${nextTier} tier`,
+        });
+        fetchUsers();
+      } else {
+        throw new Error('Failed to update subscription');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update subscription",
+      });
+    }
+  };
+
   const handleDeleteUser = async (userId: number) => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -90,6 +117,7 @@ export default function AdminDashboard() {
                       <th className="text-left p-2">Username</th>
                       <th className="text-left p-2">Email</th>
                       <th className="text-left p-2">Role</th>
+                      <th className="text-left p-2">Plan</th>
                       <th className="text-left p-2">Actions</th>
                     </tr>
                   </thead>
@@ -103,6 +131,16 @@ export default function AdminDashboard() {
                           {user.isAdmin ? 'Admin' : user.isArtist ? 'Artist' : 'User'}
                         </td>
                         <td className="p-2">
+                          {user.subscriptionTier === 'premium' ? 'Premium' : 'Free'}
+                        </td>
+                        <td className="p-2 space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleSubscription(user)}
+                          >
+                            {user.subscriptionTier === 'premium' ? 'Revoke Premium' : 'Grant Premium'}
+                          </Button>
                           <Button
                             variant="destructive"
                             size="sm"

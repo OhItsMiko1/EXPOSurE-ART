@@ -137,6 +137,12 @@ export const uploadArtworkFormSchema = insertArtworkSchema.extend({
   image: z.any().refine(files => files?.length === 1, "Image is required"),
 }).omit({ imageUrl: true });
 
+// Same as uploadArtworkFormSchema, but the image is optional -- editing an
+// existing artwork should keep its current image unless a new one is picked.
+export const editArtworkFormSchema = insertArtworkSchema.extend({
+  image: z.any().optional(),
+}).omit({ imageUrl: true });
+
 export const commissionFormSchema = insertCommissionSchema.extend({
   email: z.string().email("Invalid email address").optional(),
   phone: z.string().optional(),
@@ -156,6 +162,7 @@ export const createTutorialStepFormSchema = insertTutorialStepSchema.extend({
 export type LoginFormValues = z.infer<typeof loginFormSchema>;
 export type RegisterFormValues = z.infer<typeof registerFormSchema>;
 export type UploadArtworkFormValues = z.infer<typeof uploadArtworkFormSchema>;
+export type EditArtworkFormValues = z.infer<typeof editArtworkFormSchema>;
 export type CommissionFormValues = z.infer<typeof commissionFormSchema>;
 export type CreateTutorialFormValues = z.infer<typeof createTutorialFormSchema>;
 export type CreateTutorialStepFormValues = z.infer<typeof createTutorialStepFormSchema>;
