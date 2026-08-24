@@ -166,11 +166,11 @@ export default function UploadArtwork() {
         description: `Your artwork has been successfully ${isEditMode ? "updated" : "uploaded"}.`,
       });
 
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/artworks'] });
-      if (isEditMode) {
-        queryClient.invalidateQueries({ queryKey: [`/api/artworks/${id}`] });
-      }
+      // Invalidate queries to refresh data (predicate catches both the
+      // plain artwork list and any filtered variant, e.g. ?artistId=)
+      queryClient.invalidateQueries({
+        predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('/api/artworks'),
+      });
 
       // Navigate to the artwork page
       navigate(`/artwork/${data.id}`);

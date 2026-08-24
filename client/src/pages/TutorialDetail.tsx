@@ -43,7 +43,7 @@ export default function TutorialDetail() {
   });
 
   const { data: relatedTutorials, isLoading: isLoadingRelated } = useQuery<Tutorial[]>({
-    queryKey: ['/api/tutorials', { categoryId: tutorial?.categoryId }],
+    queryKey: [`/api/tutorials/category/${tutorial?.categoryId}`],
     enabled: !!tutorial?.categoryId,
   });
 

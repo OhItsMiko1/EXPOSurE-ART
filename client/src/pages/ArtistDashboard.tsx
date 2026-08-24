@@ -71,12 +71,12 @@ export default function ArtistDashboard() {
   
   // Fetch artist's artworks
   const { data: artworks, isLoading: isLoadingArtworks } = useQuery<Artwork[]>({
-    queryKey: ['/api/artworks', { artistId: user.id }],
+    queryKey: [`/api/artworks?artistId=${user.id}`],
   });
-  
+
   // Fetch artist's commissions
   const { data: commissions, isLoading: isLoadingCommissions } = useQuery<Commission[]>({
-    queryKey: ['/api/commissions', { artistId: user.id }],
+    queryKey: [`/api/commissions?artistId=${user.id}`],
   });
   
   // Delete artwork mutation
@@ -90,7 +90,9 @@ export default function ArtistDashboard() {
         description: "Your artwork has been successfully deleted.",
       });
       
-      queryClient.invalidateQueries({ queryKey: ['/api/artworks'] });
+      queryClient.invalidateQueries({
+        predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('/api/artworks'),
+      });
       setArtworkToDelete(null);
     },
     onError: (error) => {
