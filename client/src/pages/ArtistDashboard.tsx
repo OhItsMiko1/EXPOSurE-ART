@@ -32,24 +32,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  UploadCloud, 
-  Edit, 
-  Trash, 
-  MoreVertical, 
-  Eye, 
-  AlertCircle, 
-  Check, 
-  X, 
-  Clock 
+import {
+  UploadCloud,
+  Edit,
+  Trash,
+  AlertCircle,
+  Check,
+  X,
+  Clock
 } from "lucide-react";
 
 export default function ArtistDashboard() {
@@ -196,45 +188,30 @@ export default function ArtistDashboard() {
                     />
                   </div>
                   <CardHeader>
-                    <CardTitle className="flex justify-between items-start">
-                      <span className="truncate">{artwork.title}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a href={`/artwork/${artwork.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <a href={`/edit-artwork/${artwork.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => setArtworkToDelete(artwork)}
-                            className="text-red-600 focus:text-red-600"
-                          >
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </CardTitle>
+                    <CardTitle className="truncate">{artwork.title}</CardTitle>
                     <CardDescription className="flex justify-between">
                       <span>${artwork.price.toFixed(2)}</span>
                       <span>{artwork.forSale ? "For Sale" : "Not for Sale"}</span>
                     </CardDescription>
                   </CardHeader>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href={`/artwork/${artwork.id}`}>View Details</a>
+                  <CardFooter className="flex gap-2">
+                    <Button variant="default" className="flex-1" asChild>
+                      <a href={`/edit-artwork/${artwork.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </a>
+                    </Button>
+                    <Button variant="outline" className="flex-1" asChild>
+                      <a href={`/artwork/${artwork.id}`}>View</a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="text-red-600 hover:text-red-600 hover:bg-red-50 shrink-0"
+                      onClick={() => setArtworkToDelete(artwork)}
+                      aria-label="Delete artwork"
+                    >
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </CardFooter>
                 </Card>
