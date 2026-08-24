@@ -387,6 +387,20 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     }
   });
 
+  router.get('/users', async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || !req.user.isAdmin) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users.map(({ password, ...user }) => user));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   router.delete('/users/:id', async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
