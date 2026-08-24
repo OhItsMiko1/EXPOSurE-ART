@@ -25,6 +25,7 @@ import Checkout from "@/pages/Checkout";
 import Tutorials from "@/pages/Tutorials";
 import TutorialDetail from "@/pages/TutorialDetail";
 import CreateTutorial from "@/pages/CreateTutorial";
+import Messages from "@/pages/Messages";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdminDashboard from "./pages/AdminDashboard"; // Added import for AdminDashboard
@@ -177,6 +178,8 @@ function Router() {
           <Route path="/subscription" component={Subscription} />
           <Route path="/checkout" component={Checkout} />
           <Route path="/checkout/artwork/:id" component={Checkout} />
+          <Route path="/messages" component={Messages} />
+          <Route path="/messages/:userId" component={Messages} />
           <Route path="/about" component={AboutUs} />
           <Route path="/tutorials" component={Tutorials} />
           <Route path="/tutorials/create" component={CreateTutorial} />

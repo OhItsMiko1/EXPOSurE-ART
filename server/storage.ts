@@ -34,10 +34,13 @@ import {
   socialShares, type SocialShare, type InsertSocialShare,
 
   // Password reset imports
-  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken
+  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken,
+
+  // Message imports
+  messages, type Message, type InsertMessage
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gt, lt, between, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, desc, sql, gt, lt, between, isNull, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -101,6 +104,12 @@ export interface IStorage {
   createTutorialStep(step: InsertTutorialStep): Promise<TutorialStep>;
   incrementTutorialViews(tutorialId: number): Promise<Tutorial | undefined>;
 
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getConversations(userId: number): Promise<{ otherUser: User; lastMessage: Message; unreadCount: number }[]>;
+  getConversation(userId: number, otherUserId: number): Promise<Message[]>;
+  markConversationAsRead(userId: number, otherUserId: number): Promise<void>;
+
   // Password reset operations already defined above
 }
 
@@ -114,6 +123,7 @@ export class MemStorage implements IStorage {
   private tutorials: Map<number, Tutorial>;
   private tutorialSteps: Map<number, TutorialStep>;
   private passwordResetTokens: Map<number, PasswordResetToken>;
+  private messages: Map<number, Message>;
   private userCurrentId: number;
   private categoryCurrentId: number;
   private artworkCurrentId: number;
@@ -123,6 +133,7 @@ export class MemStorage implements IStorage {
   private tutorialCurrentId: number;
   private tutorialStepCurrentId: number;
   private passwordResetTokenCurrentId: number;
+  private messageCurrentId: number;
 
   constructor() {
     this.users = new Map();
@@ -134,6 +145,7 @@ export class MemStorage implements IStorage {
     this.tutorials = new Map();
     this.tutorialSteps = new Map();
     this.passwordResetTokens = new Map();
+    this.messages = new Map();
     this.userCurrentId = 1;
     this.categoryCurrentId = 1;
     this.artworkCurrentId = 1;
@@ -143,6 +155,7 @@ export class MemStorage implements IStorage {
     this.tutorialCurrentId = 1;
     this.tutorialStepCurrentId = 1;
     this.passwordResetTokenCurrentId = 1;
+    this.messageCurrentId = 1;
 
     // Add some default categories
     const defaultCategories = [
@@ -626,6 +639,61 @@ export class MemStorage implements IStorage {
     const updatedTutorial = { ...tutorial, views: tutorial.views + 1 };
     this.tutorials.set(tutorialId, updatedTutorial);
     return updatedTutorial;
+  }
+
+  // Message operations
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = this.messageCurrentId++;
+    const message: Message = {
+      ...insertMessage,
+      artworkId: insertMessage.artworkId ?? null,
+      id,
+      read: false,
+      createdAt: new Date(),
+    };
+    this.messages.set(id, message);
+    return message;
+  }
+
+  async getConversations(userId: number): Promise<{ otherUser: User; lastMessage: Message; unreadCount: number }[]> {
+    const relevant = Array.from(this.messages.values())
+      .filter(m => m.senderId === userId || m.receiverId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const conversations = new Map<number, { lastMessage: Message; unreadCount: number }>();
+    for (const message of relevant) {
+      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      if (!conversations.has(otherUserId)) {
+        conversations.set(otherUserId, { lastMessage: message, unreadCount: 0 });
+      }
+      if (message.receiverId === userId && !message.read) {
+        conversations.get(otherUserId)!.unreadCount++;
+      }
+    }
+
+    const results: { otherUser: User; lastMessage: Message; unreadCount: number }[] = [];
+    for (const [otherUserId, data] of conversations) {
+      const otherUser = await this.getUser(otherUserId);
+      if (otherUser) results.push({ otherUser, ...data });
+    }
+    return results;
+  }
+
+  async getConversation(userId: number, otherUserId: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(m =>
+        (m.senderId === userId && m.receiverId === otherUserId) ||
+        (m.senderId === otherUserId && m.receiverId === userId)
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async markConversationAsRead(userId: number, otherUserId: number): Promise<void> {
+    for (const message of this.messages.values()) {
+      if (message.senderId === otherUserId && message.receiverId === userId && !message.read) {
+        message.read = true;
+      }
+    }
   }
 
   // Password reset operations
@@ -1114,6 +1182,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tutorials.id, tutorialId))
       .returning();
     return updatedTutorial;
+  }
+
+  // Message operations
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db.insert(messages).values({
+      ...insertMessage,
+      artworkId: insertMessage.artworkId ?? null,
+    }).returning();
+    return message;
+  }
+
+  async getConversations(userId: number): Promise<{ otherUser: User; lastMessage: Message; unreadCount: number }[]> {
+    const relevant = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+
+    const conversations = new Map<number, { lastMessage: Message; unreadCount: number }>();
+    for (const message of relevant) {
+      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      if (!conversations.has(otherUserId)) {
+        conversations.set(otherUserId, { lastMessage: message, unreadCount: 0 });
+      }
+      if (message.receiverId === userId && !message.read) {
+        conversations.get(otherUserId)!.unreadCount++;
+      }
+    }
+
+    const results: { otherUser: User; lastMessage: Message; unreadCount: number }[] = [];
+    for (const [otherUserId, data] of conversations) {
+      const otherUser = await this.getUser(otherUserId);
+      if (otherUser) results.push({ otherUser, ...data });
+    }
+    return results;
+  }
+
+  async getConversation(userId: number, otherUserId: number): Promise<Message[]> {
+    return await db.select().from(messages)
+      .where(or(
+        and(eq(messages.senderId, userId), eq(messages.receiverId, otherUserId)),
+        and(eq(messages.senderId, otherUserId), eq(messages.receiverId, userId))
+      ))
+      .orderBy(messages.createdAt);
+  }
+
+  async markConversationAsRead(userId: number, otherUserId: number): Promise<void> {
+    await db.update(messages)
+      .set({ read: true })
+      .where(and(
+        eq(messages.senderId, otherUserId),
+        eq(messages.receiverId, userId),
+        eq(messages.read, false)
+      ));
   }
 
   // Password reset operations

@@ -84,6 +84,22 @@ export type Commission = {
   artistName?: string;
 };
 
+export type Message = {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  artworkId?: number | null;
+  content: string;
+  read: boolean;
+  createdAt: string;
+};
+
+export type Conversation = {
+  otherUser: User;
+  lastMessage: Message;
+  unreadCount: number;
+};
+
 // Tutorial types
 export type Tutorial = {
   id: number;

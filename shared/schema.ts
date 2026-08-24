@@ -280,6 +280,16 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   used: boolean("used").default(false).notNull(),
 });
 
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull(),
+  receiverId: integer("receiver_id").notNull(),
+  artworkId: integer("artwork_id"),
+  content: text("content").notNull(),
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -497,6 +507,16 @@ export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTo
   token: true,
   expiresAt: true,
 });
+
+export const insertMessageSchema = createInsertSchema(messages).pick({
+  senderId: true,
+  receiverId: true,
+  artworkId: true,
+  content: true,
+});
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
 
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
 export type Recommendation = typeof recommendations.$inferSelect;
