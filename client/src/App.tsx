@@ -159,6 +159,17 @@ function Router() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Site-wide animated background: drifting color blobs + sparkle, painted above
+          every page's own background but click-through so it never blocks the UI. */}
+      <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 opacity-[0.06]">
+          <div className="blob-1 absolute top-0 left-0 w-1/2 h-1/2 bg-red-500 rounded-full blur-3xl"></div>
+          <div className="blob-2 absolute bottom-0 right-0 w-1/2 h-1/2 bg-blue-500 rounded-full blur-3xl"></div>
+          <div className="blob-3 absolute top-1/2 left-1/2 w-1/3 h-1/3 bg-yellow-500 rounded-full blur-3xl"></div>
+        </div>
+        <div className="absolute inset-0 glitter opacity-30"></div>
+      </div>
+
       <Navbar />
       <main className="flex-grow">
         <Switch>
