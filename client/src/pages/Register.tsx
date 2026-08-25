@@ -79,7 +79,7 @@ export default function Register() {
   const isArtist = form.watch("isArtist");
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50/70 py-12">
       <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center text-primary text-sm hover:underline">
