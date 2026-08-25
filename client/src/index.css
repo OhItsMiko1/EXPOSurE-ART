@@ -130,3 +130,31 @@
     background-position: 100px 100px;
   }
 }
+
+/* Slow drifting color blobs, used for the hero/404-style animated background */
+@keyframes blob-float-1 {
+  0%, 100% { transform: translate(-25%, -25%) scale(1); }
+  50% { transform: translate(-15%, -35%) scale(1.15); }
+}
+
+@keyframes blob-float-2 {
+  0%, 100% { transform: translate(25%, 25%) scale(1); }
+  50% { transform: translate(15%, 35%) scale(1.1); }
+}
+
+@keyframes blob-float-3 {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -60%) scale(1.2); }
+}
+
+.blob-1 {
+  animation: blob-float-1 14s ease-in-out infinite;
+}
+
+.blob-2 {
+  animation: blob-float-2 16s ease-in-out infinite;
+}
+
+.blob-3 {
+  animation: blob-float-3 12s ease-in-out infinite;
+}

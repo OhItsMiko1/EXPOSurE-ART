@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Artwork, User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,16 +42,58 @@ export default function ArtworkDetails() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
-  
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [questionMessage, setQuestionMessage] = useState("");
+  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
+
   const { data: artwork, isLoading: isLoadingArtwork } = useQuery<Artwork>({
     queryKey: [`/api/artworks/${id}`],
   });
-  
+
   const { data: artist, isLoading: isLoadingArtist } = useQuery<User>({
     queryKey: [`/api/users/${artwork?.artistId}`],
     enabled: !!artwork?.artistId,
   });
-  
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!artist || !artwork) return;
+      return apiRequest('POST', '/api/messages', {
+        receiverId: artist.id,
+        content,
+        artworkId: artwork.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversations'] });
+    },
+  });
+
+  const handleSendMessage = (content: string, onDone: () => void) => {
+    if (!content.trim()) return;
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    sendMessageMutation.mutate(content, {
+      onSuccess: () => {
+        toast({
+          title: "Message sent",
+          description: `Your message has been sent to ${artist?.fullName}.`,
+        });
+        onDone();
+      },
+      onError: () => {
+        toast({
+          title: "Message failed to send",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
   const handleBuyNow = () => {
     if (!artwork) return;
     navigate(`/checkout/artwork/${artwork.id}`);
@@ -247,7 +290,7 @@ export default function ArtworkDetails() {
                 Buy Now
               </Button>
             ) : (
-              <Dialog>
+              <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="lg">
                     <MessageCircle className="mr-2 h-5 w-5" />
@@ -261,25 +304,28 @@ export default function ArtworkDetails() {
                       This artwork is not currently for sale, but you can still contact the artist about it.
                     </DialogDescription>
                   </DialogHeader>
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                     <div className="grid w-full items-center gap-1.5">
                       <label htmlFor="message" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         Message
                       </label>
-                      <textarea 
-                        id="message" 
+                      <textarea
+                        id="message"
                         className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="I'm interested in this artwork..." 
+                        placeholder="I'm interested in this artwork..."
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
                       />
                     </div>
                   </form>
                   <DialogFooter>
-                    <Button onClick={() => {
-                      toast({
-                        title: "Message sent",
-                        description: `Your message has been sent to ${artist.fullName}.`,
-                      });
-                    }}>
+                    <Button
+                      disabled={!contactMessage.trim() || sendMessageMutation.isPending}
+                      onClick={() => handleSendMessage(contactMessage, () => {
+                        setContactMessage("");
+                        setContactDialogOpen(false);
+                      })}
+                    >
                       Send Message
                     </Button>
                   </DialogFooter>
@@ -293,7 +339,7 @@ export default function ArtworkDetails() {
               <Button variant="outline" size="icon" onClick={handleShare}>
                 <Share className="h-5 w-5" />
               </Button>
-              <Dialog>
+              <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon">
                     <MessageCircle className="h-5 w-5" />
@@ -306,25 +352,28 @@ export default function ArtworkDetails() {
                       Send a message to the artist about this artwork.
                     </DialogDescription>
                   </DialogHeader>
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                     <div className="grid w-full items-center gap-1.5">
                       <label htmlFor="question" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         Your Question
                       </label>
-                      <textarea 
-                        id="question" 
+                      <textarea
+                        id="question"
                         className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="I have a question about this artwork..." 
+                        placeholder="I have a question about this artwork..."
+                        value={questionMessage}
+                        onChange={(e) => setQuestionMessage(e.target.value)}
                       />
                     </div>
                   </form>
                   <DialogFooter>
-                    <Button onClick={() => {
-                      toast({
-                        title: "Message sent",
-                        description: `Your question has been sent to ${artist.fullName}.`,
-                      });
-                    }}>
+                    <Button
+                      disabled={!questionMessage.trim() || sendMessageMutation.isPending}
+                      onClick={() => handleSendMessage(questionMessage, () => {
+                        setQuestionMessage("");
+                        setQuestionDialogOpen(false);
+                      })}
+                    >
                       Send Question
                     </Button>
                   </DialogFooter>

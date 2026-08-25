@@ -1,13 +1,14 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertUserSchema, 
-  insertArtworkSchema, 
+import {
+  insertUserSchema,
+  insertArtworkSchema,
   insertCommissionSchema,
   insertTutorialSchema,
   insertTutorialStepSchema,
-  insertPasswordResetTokenSchema
+  insertPasswordResetTokenSchema,
+  insertMessageSchema
 } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
@@ -516,6 +517,64 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     }
   });
   
+  // Messages
+  router.get('/messages/conversations', async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const conversations = await storage.getConversations(req.user.id);
+      const sanitized = conversations.map(({ otherUser, ...rest }) => {
+        const { password, ...otherUserWithoutPassword } = otherUser;
+        return { otherUser: otherUserWithoutPassword, ...rest };
+      });
+      res.json(sanitized);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  router.get('/messages/:otherUserId', async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const otherUserId = parseInt(req.params.otherUserId);
+      const conversation = await storage.getConversation(req.user.id, otherUserId);
+      await storage.markConversationAsRead(req.user.id, otherUserId);
+      res.json(conversation);
+    } catch (error) {
+      console.error('Error fetching conversation:', error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  router.post('/messages', async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const messageData = insertMessageSchema.parse({
+        ...req.body,
+        senderId: req.user.id,
+      });
+
+      const newMessage = await storage.createMessage(messageData);
+      res.status(201).json(newMessage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation failed", errors: error.errors });
+      } else {
+        console.error('Error sending message:', error);
+        res.status(500).json({ message: "Server error" });
+      }
+    }
+  });
+
   // User interaction tracking
   router.post('/interactions', async (req: Request, res: Response) => {
     try {

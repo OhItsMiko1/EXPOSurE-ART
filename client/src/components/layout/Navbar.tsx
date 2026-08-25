@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/local-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { 
-  Menu, 
-  Search, 
-  Heart, 
-  Bell, 
+import { Conversation } from "@/lib/types";
+import {
+  Menu,
+  Search,
+  Heart,
+  Bell,
   User,
   Upload,
-  LogOut
+  LogOut,
+  MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,6 +28,12 @@ export default function Navbar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: conversations } = useQuery<Conversation[]>({
+    queryKey: ['/api/messages/conversations'],
+    enabled: !!user,
+  });
+  const unreadCount = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -80,6 +89,19 @@ export default function Navbar() {
             <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
               <Heart className="h-5 w-5" />
             </Button>
+
+            {user && (
+              <Button variant="ghost" size="icon" className="rounded-full text-gray-400 relative" asChild>
+                <Link href="/messages">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-primary text-white text-[10px] leading-none rounded-full h-4 w-4 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            )}
 
             <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
               <Bell className="h-5 w-5" />
@@ -218,6 +240,9 @@ export default function Navbar() {
                       </Link>
                     </>
                   )}
+                  <Link href="/messages" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                    Messages{unreadCount > 0 ? ` (${unreadCount})` : ""}
+                  </Link>
                   <Link href={`/artist/${user.id}`} className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
                     Artist Page
                   </Link>
