@@ -27,7 +27,7 @@ export default function CategoryFilter({
   });
   
   return (
-    <section className="bg-white pt-8 pb-4">
+    <section className="pt-8 pb-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800 font-poppins">{title}</h2>

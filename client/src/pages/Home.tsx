@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative bg-gray-100/60 py-12 md:py-20">
+      <section className="relative py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800 font-poppins leading-tight">
@@ -58,7 +58,7 @@ export default function Home() {
       />
 
       {/* Artwork Gallery */}
-      <section className="bg-white py-8">
+      <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoadingArtworks ? (
@@ -95,7 +95,7 @@ export default function Home() {
       </section>
 
       {/* Featured Artists */}
-      <section className="bg-gray-100 py-12">
+      <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-800 font-poppins">Featured Artists</h2>
@@ -143,7 +143,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-white py-16">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 font-poppins">How It Works</h2>
@@ -271,7 +271,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-white py-16">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 font-poppins">What Our Community Says</h2>

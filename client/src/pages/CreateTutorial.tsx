@@ -167,7 +167,7 @@ export default function CreateTutorial() {
   }
 
   return (
-    <div className="bg-gray-50/70 min-h-screen py-12">
+    <div className="min-h-screen py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Create New Tutorial</h1>

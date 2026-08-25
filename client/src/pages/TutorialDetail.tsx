@@ -104,7 +104,7 @@ export default function TutorialDetail() {
   };
 
   return (
-    <div className="bg-gray-50/70 min-h-screen pb-12">
+    <div className="min-h-screen pb-12">
       {/* Hero section with tutorial title and image */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">

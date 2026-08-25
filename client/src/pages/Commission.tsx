@@ -117,7 +117,7 @@ export default function Commission() {
   };
 
   return (
-    <div className="min-h-screen bg-white/70">
+    <div className="min-h-screen">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary to-blue-400 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
