@@ -20,7 +20,7 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
-  const { register, loginWithGoogle, isLoading } = useAuth();
+  const { register, loginWithGoogle, loginWithApple, isLoading } = useAuth();
   const { toast } = useToast();
 
   const onGoogleSignIn = async () => {
@@ -30,6 +30,18 @@ export default function Register() {
       toast({
         variant: "destructive",
         title: "Google sign-in failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
+
+  const onAppleSignIn = async () => {
+    try {
+      await loginWithApple();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Apple sign-in failed",
         description: error instanceof Error ? error.message : "Please try again.",
       });
     }
@@ -354,6 +366,16 @@ export default function Register() {
             onClick={onGoogleSignIn}
           >
             Continue with Google
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mt-3"
+            disabled={isLoading}
+            onClick={onAppleSignIn}
+          >
+            Continue with Apple
           </Button>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
   GithubAuthProvider,
+  OAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User as FirebaseUser,
@@ -29,6 +30,7 @@ export const auth = app ? getAuth(app) : null;
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
+const appleProvider = new OAuthProvider("apple.com");
 
 // Google sign-in
 export async function signInWithGoogle(): Promise<UserCredential> {
@@ -44,6 +46,14 @@ export async function signInWithGithub(): Promise<UserCredential> {
     throw new Error("GitHub sign-in isn't configured yet.");
   }
   return signInWithPopup(auth, githubProvider);
+}
+
+// Apple sign-in
+export async function signInWithApple(): Promise<UserCredential> {
+  if (!auth) {
+    throw new Error("Apple sign-in isn't configured yet.");
+  }
+  return signInWithPopup(auth, appleProvider);
 }
 
 // Sign out

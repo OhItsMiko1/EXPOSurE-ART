@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { signInWithGoogle } from "@/lib/firebase";
+import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
 import type { User as SchemaUser } from "@shared/schema";
 
 // The server strips `password` before sending a user to the client
@@ -16,6 +16,7 @@ type AuthContextType = {
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   login: async () => {},
   loginWithGoogle: async () => {},
+  loginWithApple: async () => {},
   register: async () => {},
   logout: async () => {},
   checkAuth: async () => {},
@@ -110,12 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Google sign-in via Firebase
-  const loginWithGoogle = async () => {
+  // Shared flow for Firebase-backed social sign-in (Google, Apple, ...): run the
+  // provider's popup, then exchange the Firebase user for our own session cookie.
+  const loginWithFirebaseProvider = async (
+    providerName: string,
+    signIn: () => Promise<{ user: { email: string | null; uid: string; displayName: string | null; photoURL: string | null } }>
+  ) => {
     setError(null);
     setIsLoading(true);
     try {
-      const credential = await signInWithGoogle();
+      const credential = await signIn();
       const firebaseUser = credential.user;
 
       const response = await apiRequest("POST", "/api/users/firebase-auth", {
@@ -135,25 +141,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         const data = await response.json();
-        setError(data.message || "Google sign-in failed");
+        setError(data.message || `${providerName} sign-in failed`);
         toast({
           variant: "destructive",
-          title: "Google sign-in failed",
+          title: `${providerName} sign-in failed`,
           description: data.message || "Please try again.",
         });
       }
     } catch (err) {
-      console.error("Google sign-in error:", err);
-      setError("An unexpected error occurred. Please try again.");
+      console.error(`${providerName} sign-in error:`, err);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
+      setError(message);
       toast({
         variant: "destructive",
-        title: "Google sign-in error",
-        description: "An unexpected error occurred. Please try again.",
+        title: `${providerName} sign-in error`,
+        description: message,
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const loginWithGoogle = () => loginWithFirebaseProvider("Google", signInWithGoogle);
+  const loginWithApple = () => loginWithFirebaseProvider("Apple", signInWithApple);
 
   // Register function
   const register = async (userData: RegisterData) => {
@@ -231,6 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         login,
         loginWithGoogle,
+        loginWithApple,
         register,
         logout,
         checkAuth,
