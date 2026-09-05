@@ -1,12 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 export default function AboutUs() {
-  useEffect(() => {
-    console.log("About Us page mounted");
-  }, []);
-
   return (
     <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-12">
@@ -18,12 +14,7 @@ export default function AboutUs() {
         </p>
       </div>
 
-      {/* This section will be replaced with real content when provided */}
       <div className="max-w-4xl mx-auto">
-        <div className="p-4 mb-8 bg-blue-50 border border-blue-200 rounded-lg text-center">
-          <p className="text-blue-800">About Us page is loaded correctly!</p>
-        </div>
-        
         <Card className="mb-12 border-none shadow-lg bg-white/50 backdrop-blur-sm">
           <CardContent className="p-8">
             <h2 className="text-3xl font-bold mb-6 text-center text-fuchsia-600">Our Story</h2>

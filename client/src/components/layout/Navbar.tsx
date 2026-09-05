@@ -52,7 +52,7 @@ export default function Navbar() {
               <Link href="/discover" className={`${location === '/discover' ? 'border-red-500 text-neutral-800' : 'border-transparent text-neutral-500 hover:border-blue-500 hover:text-neutral-800'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
                 Discover
               </Link>
-              <Link href="/category" className={`${location.startsWith('/category') ? 'border-blue-500 text-neutral-800' : 'border-transparent text-neutral-500 hover:border-yellow-500 hover:text-neutral-800'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
+              <Link href="/discover" className={`${location === '/discover' ? 'border-blue-500 text-neutral-800' : 'border-transparent text-neutral-500 hover:border-yellow-500 hover:text-neutral-800'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
                 Categories
               </Link>
               <Link href="/artists" className={`${location === '/artists' ? 'border-yellow-500 text-neutral-800' : 'border-transparent text-neutral-500 hover:border-red-500 hover:text-neutral-800'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
@@ -198,7 +198,7 @@ export default function Navbar() {
             <Link href="/discover" className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-500 hover:bg-gray-50 hover:border-red-500 hover:text-gray-700">
               Discover
             </Link>
-            <Link href="/category" className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-500 hover:bg-gray-50 hover:border-blue-500 hover:text-gray-700">
+            <Link href="/discover" className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-500 hover:bg-gray-50 hover:border-blue-500 hover:text-gray-700">
               Categories
             </Link>
             <Link href="/artists" className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent text-gray-500 hover:bg-gray-50 hover:border-yellow-500 hover:text-gray-700">
