@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./lib/local-auth";
 // Page imports
 import Home from "@/pages/Home";
 import Discover from "@/pages/Discover";
+import Artists from "@/pages/Artists";
 import ArtworkDetails from "@/pages/ArtworkDetails";
 import ArtistProfile from "@/pages/ArtistProfile";
 import ArtistDashboard from "@/pages/ArtistDashboard";
@@ -175,6 +176,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/discover" component={Discover} />
+          <Route path="/artists" component={Artists} />
           <Route path="/artwork/:id" component={ArtworkDetails} />
           <Route path="/artist/:id" component={ArtistProfile} />
           <Route path="/dashboard" component={ArtistDashboard} />
