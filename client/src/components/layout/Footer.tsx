@@ -15,18 +15,18 @@ export default function Footer() {
               A marketplace connecting <span className="text-fuchsia-400 font-medium">real human artists</span> with art lovers and collectors worldwide.
             </p>
             <div className="mt-6 flex space-x-4">
-              <a href="#" className="text-red-300 hover:text-white transition-colors duration-300">
+              <span title="Coming soon" className="text-red-300/40 cursor-not-allowed">
                 <Instagram size={20} />
-              </a>
-              <a href="#" className="text-blue-300 hover:text-white transition-colors duration-300">
+              </span>
+              <span title="Coming soon" className="text-blue-300/40 cursor-not-allowed">
                 <Twitter size={20} />
-              </a>
-              <a href="#" className="text-blue-300 hover:text-white transition-colors duration-300">
+              </span>
+              <span title="Coming soon" className="text-blue-300/40 cursor-not-allowed">
                 <Facebook size={20} />
-              </a>
-              <a href="#" className="text-red-300 hover:text-white transition-colors duration-300">
+              </span>
+              <span title="Coming soon" className="text-red-300/40 cursor-not-allowed">
                 <Youtube size={20} />
-              </a>
+              </span>
             </div>
           </div>
           
@@ -34,10 +34,11 @@ export default function Footer() {
             <h4 className="font-bold mb-4 text-red-300">For Artists</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/register" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Sell Your Art</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Pricing & Fees</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Artist Resources</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Success Stories</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Artist FAQ</Link></li>
+              <li><Link href="/pricing" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Pricing & Fees</Link></li>
+              <li><Link href="/artist-resources" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Artist Resources</Link></li>
+              <li><Link href="/success-stories" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Success Stories</Link></li>
+              <li><Link href="/artist-faq" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Artist FAQ</Link></li>
+              <li><Link href="/live-events" className="text-gray-300 hover:text-red-300 transition-colors duration-300">Host Live Events</Link></li>
             </ul>
           </div>
           
@@ -46,9 +47,9 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/discover" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Buy Original Art</Link></li>
               <li><Link href="/commission" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Commission Art</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Gift Cards</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Buyer Protection</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Buyer FAQ</Link></li>
+              <li><Link href="/gift-cards" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Gift Cards</Link></li>
+              <li><Link href="/buyer-protection" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Buyer Protection</Link></li>
+              <li><Link href="/buyer-faq" className="text-gray-300 hover:text-yellow-300 transition-colors duration-300">Buyer FAQ</Link></li>
             </ul>
           </div>
           
@@ -56,10 +57,10 @@ export default function Footer() {
             <h4 className="font-bold mb-4 text-blue-300">About Us</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/about" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Our Story</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Careers</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Press</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Contact Us</Link></li>
-              <li><Link href="#" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Trust & Safety</Link></li>
+              <li><Link href="/careers" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Careers</Link></li>
+              <li><Link href="/press" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Press</Link></li>
+              <li><Link href="/contact" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Contact Us</Link></li>
+              <li><Link href="/trust-safety" className="text-gray-300 hover:text-blue-300 transition-colors duration-300">Trust & Safety</Link></li>
             </ul>
           </div>
         </div>
@@ -70,9 +71,9 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} <span className="text-blue-300">EXPOSurE</span>.<span className="text-red-300">ART</span>. All rights reserved.
             </div>
             <div className="flex space-x-6">
-              <Link href="#" className="hover:text-red-300 transition-colors duration-300">Terms of Service</Link>
-              <Link href="#" className="hover:text-yellow-300 transition-colors duration-300">Privacy Policy</Link>
-              <Link href="#" className="hover:text-blue-300 transition-colors duration-300">Cookie Policy</Link>
+              <Link href="/terms" className="hover:text-red-300 transition-colors duration-300">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-yellow-300 transition-colors duration-300">Privacy Policy</Link>
+              <Link href="/cookies" className="hover:text-blue-300 transition-colors duration-300">Cookie Policy</Link>
             </div>
           </div>
         </div>

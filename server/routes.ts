@@ -15,7 +15,7 @@ import { z } from "zod";
 import { ZodError } from "zod-validation-error";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
-import { sendPasswordResetEmail } from "./email";
+import { sendPasswordResetEmail, sendEmail } from "./email";
 import { v2 as cloudinary } from "cloudinary";
 
 const BCRYPT_SALT_ROUNDS = 10;
@@ -572,6 +572,39 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
         console.error('Error sending message:', error);
         res.status(500).json({ message: "Server error" });
       }
+    }
+  });
+
+  // Contact form
+  router.post('/contact', async (req: Request, res: Response) => {
+    try {
+      const { name, email, message } = req.body;
+
+      if (!name || !email || !message) {
+        return res.status(400).json({ message: "Name, email, and message are required" });
+      }
+
+      const contactEmail = process.env.CONTACT_EMAIL;
+      if (!contactEmail) {
+        console.error('Contact form error: CONTACT_EMAIL is not set');
+        return res.status(500).json({ message: "Contact form isn't configured yet" });
+      }
+
+      const html = `
+        <h1>New contact form message</h1>
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p>${message.replace(/\n/g, '<br>')}</p>
+      `;
+
+      const emailSent = await sendEmail(contactEmail, `New message from ${name}`, html);
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send message. Please try again." });
+      }
+
+      res.status(200).json({ message: "Message sent" });
+    } catch (error) {
+      console.error('Contact form error:', error);
+      res.status(500).json({ message: "Server error" });
     }
   });
 

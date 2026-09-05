@@ -27,6 +27,21 @@ import Tutorials from "@/pages/Tutorials";
 import TutorialDetail from "@/pages/TutorialDetail";
 import CreateTutorial from "@/pages/CreateTutorial";
 import Messages from "@/pages/Messages";
+import LiveEvents from "@/pages/LiveEvents";
+import GiftCards from "@/pages/GiftCards";
+import PricingFees from "@/pages/PricingFees";
+import ArtistResources from "@/pages/ArtistResources";
+import SuccessStories from "@/pages/SuccessStories";
+import ArtistFAQ from "@/pages/ArtistFAQ";
+import BuyerProtection from "@/pages/BuyerProtection";
+import BuyerFAQ from "@/pages/BuyerFAQ";
+import Careers from "@/pages/Careers";
+import Press from "@/pages/Press";
+import ContactUs from "@/pages/ContactUs";
+import TrustSafety from "@/pages/TrustSafety";
+import TermsOfService from "@/pages/TermsOfService";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import CookiePolicy from "@/pages/CookiePolicy";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdminDashboard from "./pages/AdminDashboard"; // Added import for AdminDashboard
@@ -194,6 +209,21 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/messages/:userId" component={Messages} />
           <Route path="/about" component={AboutUs} />
+          <Route path="/live-events" component={LiveEvents} />
+          <Route path="/gift-cards" component={GiftCards} />
+          <Route path="/pricing" component={PricingFees} />
+          <Route path="/artist-resources" component={ArtistResources} />
+          <Route path="/success-stories" component={SuccessStories} />
+          <Route path="/artist-faq" component={ArtistFAQ} />
+          <Route path="/buyer-protection" component={BuyerProtection} />
+          <Route path="/buyer-faq" component={BuyerFAQ} />
+          <Route path="/careers" component={Careers} />
+          <Route path="/press" component={Press} />
+          <Route path="/contact" component={ContactUs} />
+          <Route path="/trust-safety" component={TrustSafety} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/cookies" component={CookiePolicy} />
           <Route path="/tutorials" component={Tutorials} />
           <Route path="/tutorials/create" component={CreateTutorial} />
           <Route path="/tutorials/:id" component={TutorialDetail} />
