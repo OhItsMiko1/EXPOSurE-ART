@@ -116,19 +116,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // provider's popup, then exchange the Firebase user for our own session cookie.
   const loginWithFirebaseProvider = async (
     providerName: string,
-    signIn: () => Promise<{ user: { email: string | null; uid: string; displayName: string | null; photoURL: string | null } }>
+    signIn: () => Promise<{ user: { getIdToken: () => Promise<string> } }>
   ) => {
     setError(null);
     setIsLoading(true);
     try {
       const credential = await signIn();
-      const firebaseUser = credential.user;
+      const idToken = await credential.user.getIdToken();
 
       const response = await apiRequest("POST", "/api/users/firebase-auth", {
-        email: firebaseUser.email,
-        firebaseUid: firebaseUser.uid,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
+        idToken,
       });
 
       if (response.ok) {

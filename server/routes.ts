@@ -18,6 +18,7 @@ import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail, sendEmail } from "./email";
 import { v2 as cloudinary } from "cloudinary";
 import crypto from "crypto";
+import { verifyFirebaseIdToken } from "./firebase-verify";
 
 const BCRYPT_SALT_ROUNDS = 10;
 // Add auth middleware
@@ -346,12 +347,32 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
 
   router.post('/users/firebase-auth', async (req: Request, res: Response) => {
     try {
-      const { email, firebaseUid, displayName, photoURL } = req.body;
-      
-      if (!email || !firebaseUid) {
-        return res.status(400).json({ message: "Email and Firebase UID are required" });
+      // The client used to send raw email/uid/displayName/photoURL, which the
+      // server trusted outright -- anyone could POST any known email (e.g. the
+      // hardcoded admin@exposure.art) and be signed in as that account, no
+      // Firebase login required. The client now sends its Firebase ID token
+      // instead, and the server verifies it against Google's public keys so
+      // the identity actually comes from a real Firebase sign-in.
+      const { idToken } = req.body;
+
+      if (!idToken) {
+        return res.status(400).json({ message: "Firebase ID token is required" });
       }
-      
+
+      let verified;
+      try {
+        verified = await verifyFirebaseIdToken(idToken);
+      } catch (err) {
+        console.error("Firebase ID token verification failed:", err);
+        return res.status(401).json({ message: "Invalid or expired sign-in token" });
+      }
+
+      const { uid: firebaseUid, email, emailVerified, name: displayName, picture: photoURL } = verified;
+
+      if (!email || !emailVerified) {
+        return res.status(401).json({ message: "A verified email is required to sign in" });
+      }
+
       // Check if user exists by email
       let user = await storage.getUserByEmail(email);
       const isNewUser = !user;
@@ -369,6 +390,15 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
           profileImage: photoURL || '',
           firebaseUid
         });
+      } else if (!user.firebaseUid) {
+        // First time this existing (password-based) account signs in via
+        // Firebase -- link it, matching the account by verified email.
+        await storage.updateUserFirebaseInfo(user.id, { firebaseUid });
+        user = { ...user, firebaseUid };
+      } else if (user.firebaseUid !== firebaseUid) {
+        // This email is already linked to a different Firebase identity --
+        // don't silently sign the caller into it.
+        return res.status(401).json({ message: "This email is already linked to a different account" });
       }
 
       // Set auth cookie, same as the regular login route

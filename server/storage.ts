@@ -1363,5 +1363,22 @@ if (!process.env.VITEST) (async () => {
       // admin. This bootstrap is the one trusted, hardcoded exception.
       isAdmin: true
     } as InsertUser);
+  } else {
+    // The earlier fix above only stops a *fresh* database from ever getting
+    // the old hardcoded "admin123" password -- it does nothing for a
+    // deployment that already has an "admin" row created before that fix
+    // existed, since this whole block is skipped once the account exists.
+    // Rotate away from it here if it's still active.
+    const stillDefaultPassword = await bcrypt.compare("admin123", existingAdmin.password);
+    if (stillDefaultPassword) {
+      const newPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(12).toString('base64url');
+      await storage.updateUserPassword(existingAdmin.id, await bcrypt.hash(newPassword, 10));
+      console.warn(
+        `SECURITY: the "admin" account still had the old default password and has ` +
+        `been automatically rotated. New password: ${newPassword}\n` +
+        `Log in as "admin" with this password and change it right away, or set ` +
+        `ADMIN_PASSWORD as an environment variable to control this instead.`
+      );
+    }
   }
 })();
