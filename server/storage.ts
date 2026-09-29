@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import {
   users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription,
   categories, type Category, type InsertCategory,
@@ -702,14 +703,9 @@ export class MemStorage implements IStorage {
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour expiration
 
-    // Generate a random token
-    const tokenBytes = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      tokenBytes[i] = Math.floor(Math.random() * 256);
-    }
-    const token = Array.from(tokenBytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    // Generate a cryptographically random token (Math.random() is not safe
+    // for anything security-sensitive -- it's a predictable, non-crypto PRNG).
+    const token = crypto.randomBytes(32).toString('hex');
 
     const passwordResetToken: PasswordResetToken = {
       id,
@@ -1241,14 +1237,9 @@ export class DatabaseStorage implements IStorage {
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour expiration
 
-    // Generate a random token
-    const tokenBytes = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      tokenBytes[i] = Math.floor(Math.random() * 256);
-    }
-    const token = Array.from(tokenBytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    // Generate a cryptographically random token (Math.random() is not safe
+    // for anything security-sensitive -- it's a predictable, non-crypto PRNG).
+    const token = crypto.randomBytes(32).toString('hex');
 
     const [passwordResetToken] = await db.insert(passwordResetTokens)
       .values({
@@ -1349,9 +1340,21 @@ export const storage = new FixedDatabaseStorage();
 if (!process.env.VITEST) (async () => {
   const existingAdmin = await storage.getUserByUsername("admin");
   if (!existingAdmin) {
+    // A hardcoded default password here would mean anyone reading this
+    // source could log in as admin. Use ADMIN_PASSWORD if set; otherwise
+    // generate a random one-time password and print it once so whoever
+    // deploys this can log in and should then change it immediately.
+    const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(12).toString('base64url');
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn(
+        `No ADMIN_PASSWORD set -- generated a one-time admin password: ${adminPassword}\n` +
+        `Log in as "admin" with this password and change it right away. ` +
+        `Set ADMIN_PASSWORD as an environment variable to control this instead.`
+      );
+    }
     await storage.createUser({
       username: "admin",
-      password: await bcrypt.hash("admin123", 10),
+      password: await bcrypt.hash(adminPassword, 10),
       email: "admin@exposure.art",
       fullName: "Admin",
       isArtist: false,

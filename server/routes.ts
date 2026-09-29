@@ -17,6 +17,7 @@ import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail, sendEmail } from "./email";
 import { v2 as cloudinary } from "cloudinary";
+import crypto from "crypto";
 
 const BCRYPT_SALT_ROUNDS = 10;
 // Add auth middleware
@@ -29,29 +30,67 @@ declare global {
   }
 }
 
+// The auth_token cookie previously held the plain username with nothing
+// tying it to the real login -- anyone could set auth_token=<any username>
+// (usernames are public, e.g. on artist profiles) and be fully authenticated
+// as that user, admin included. It's now HMAC-signed with a server secret so
+// a token can only be produced by this server, never forged by a client.
+const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
+  console.warn(
+    "Warning: SESSION_SECRET is not set. Generating a random secret for this " +
+    "process -- all existing sessions will be invalidated on every restart. " +
+    "Set SESSION_SECRET to a long random string in production."
+  );
+  return crypto.randomBytes(32).toString('hex');
+})();
+const SIGNATURE_LENGTH = 64; // hex-encoded HMAC-SHA256 digest
+
+function signSessionToken(username: string): string {
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(username).digest('hex');
+  return `${username}.${signature}`;
+}
+
+function verifySessionToken(token: string): string | null {
+  if (token.length <= SIGNATURE_LENGTH + 1) return null;
+
+  const signature = token.slice(-SIGNATURE_LENGTH);
+  const separator = token.charAt(token.length - SIGNATURE_LENGTH - 1);
+  const username = token.slice(0, token.length - SIGNATURE_LENGTH - 1);
+  if (separator !== '.') return null;
+
+  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(username).digest('hex');
+  const signatureBuffer = Buffer.from(signature, 'hex');
+  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+  if (signatureBuffer.length !== expectedBuffer.length) return null;
+  if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+
+  return username;
+}
+
 // Simple token-based authentication middleware
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   // Get token from authorization header or cookie
   const authHeader = req.headers.authorization;
   const authToken = authHeader ? authHeader.replace('Bearer ', '') : null;
-  
+
   // Check for token in both header and cookies for flexibility
   const token = authToken || req.cookies?.auth_token;
-  
+
   req.isAuthenticated = () => {
     return !!req.user;
   };
-  
+
   if (token) {
     try {
-      // For our simple auth implementation, we'll consider the token to be the username
-      // In a real implementation, this would validate a JWT or session token
-      const user = await storage.getUserByUsername(token);
-      
-      if (user) {
-        // Don't expose password in req.user
-        const { password, ...userWithoutPassword } = user;
-        req.user = userWithoutPassword;
+      const username = verifySessionToken(token);
+      if (username) {
+        const user = await storage.getUserByUsername(username);
+
+        if (user) {
+          // Don't expose password in req.user
+          const { password, ...userWithoutPassword } = user;
+          req.user = userWithoutPassword;
+        }
       }
     } catch (error) {
       console.error("Auth middleware error:", error);
@@ -92,6 +131,15 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function uploadImageBuffer(buffer: Buffer): Promise<string> {
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -164,7 +212,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
       
       // Set auth cookie with enhanced security and persistence
-      res.cookie('auth_token', username, { 
+      res.cookie('auth_token', signSessionToken(username), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -324,7 +372,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
 
       // Set auth cookie, same as the regular login route
-      res.cookie('auth_token', user.username, {
+      res.cookie('auth_token', signSessionToken(user.username), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -478,6 +526,11 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   router.post('/users/:id/preferences', async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
+
+      if (!req.user || req.user.id !== userId) {
+        return res.status(403).json({ message: 'You can only update your own preferences' });
+      }
+
       const preferences = req.body;
       const updatedUser = await storage.updateUserPreferences(userId, preferences);
       
@@ -592,8 +645,8 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
 
       const html = `
         <h1>New contact form message</h1>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
       `;
 
       const emailSent = await sendEmail(contactEmail, `New message from ${name}`, html);
@@ -874,9 +927,13 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
 
   router.post('/commissions', async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const commissionData = insertCommissionSchema.parse({
         ...req.body,
-        buyerId: parseInt(req.body.buyerId),
+        buyerId: req.user.id,
         artistId: parseInt(req.body.artistId),
         budget: req.body.budget ? parseFloat(req.body.budget) : undefined
       });
@@ -902,11 +959,16 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
       
       const commission = await storage.getCommission(id);
-      
+
       if (!commission) {
         return res.status(404).json({ message: "Commission not found" });
       }
-      
+
+      const isParticipant = req.user && (req.user.id === commission.artistId || req.user.id === commission.buyerId);
+      if (!isParticipant && !(req.user && req.user.isAdmin)) {
+        return res.status(403).json({ message: "You don't have permission to update this commission" });
+      }
+
       const updatedCommission = await storage.updateCommissionStatus(id, status);
       res.status(200).json(updatedCommission);
     } catch (error) {
