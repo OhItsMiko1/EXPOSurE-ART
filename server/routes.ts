@@ -19,8 +19,49 @@ import { sendPasswordResetEmail, sendEmail } from "./email";
 import { v2 as cloudinary } from "cloudinary";
 import crypto from "crypto";
 import { verifyFirebaseIdToken } from "./firebase-verify";
+import rateLimit from "express-rate-limit";
+import { fileTypeFromBuffer } from "file-type";
 
 const BCRYPT_SALT_ROUNDS = 10;
+
+// Rate limiters for endpoints that are otherwise unlimited guess/spam targets
+// (brute-forcing a password, hammering the password-reset email sender, or
+// spamming the contact-form email). Disabled during tests (VITEST) so the
+// test suite isn't rate-limited against itself.
+const skipInTests = () => !!process.env.VITEST;
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { message: "Too many login attempts. Please try again later." },
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { message: "Too many accounts created from this location. Please try again later." },
+});
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { message: "Too many password reset attempts. Please try again later." },
+});
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { message: "Too many messages sent. Please try again later." },
+});
+
 // Add auth middleware
 declare global {
   namespace Express {
@@ -44,28 +85,51 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
   );
   return crypto.randomBytes(32).toString('hex');
 })();
-const SIGNATURE_LENGTH = 64; // hex-encoded HMAC-SHA256 digest
+// 30 days, matching the auth_token cookie's maxAge below -- a token older
+// than this is rejected even if its signature still checks out.
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-function signSessionToken(username: string): string {
-  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(username).digest('hex');
-  return `${username}.${signature}`;
+interface SessionPayload {
+  u: string; // username
+  v: number; // user's sessionVersion at the time this token was issued
+  t: number; // issued-at, ms since epoch
 }
 
-function verifySessionToken(token: string): string | null {
-  if (token.length <= SIGNATURE_LENGTH + 1) return null;
+function signSessionToken(username: string, sessionVersion: number): string {
+  const payload: SessionPayload = { u: username, v: sessionVersion, t: Date.now() };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('hex');
+  return `${payloadB64}.${signature}`;
+}
 
-  const signature = token.slice(-SIGNATURE_LENGTH);
-  const separator = token.charAt(token.length - SIGNATURE_LENGTH - 1);
-  const username = token.slice(0, token.length - SIGNATURE_LENGTH - 1);
-  if (separator !== '.') return null;
+function verifySessionToken(token: string): SessionPayload | null {
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [payloadB64, signature] = parts;
 
-  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(username).digest('hex');
-  const signatureBuffer = Buffer.from(signature, 'hex');
-  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('hex');
+  let signatureBuffer: Buffer, expectedBuffer: Buffer;
+  try {
+    signatureBuffer = Buffer.from(signature, 'hex');
+    expectedBuffer = Buffer.from(expectedSignature, 'hex');
+  } catch {
+    return null;
+  }
   if (signatureBuffer.length !== expectedBuffer.length) return null;
   if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
 
-  return username;
+  let payload: SessionPayload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+  if (typeof payload.u !== 'string' || typeof payload.v !== 'number' || typeof payload.t !== 'number') {
+    return null;
+  }
+  if (Date.now() - payload.t > SESSION_MAX_AGE_MS) return null; // expired
+
+  return payload;
 }
 
 // Simple token-based authentication middleware
@@ -83,11 +147,14 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
   if (token) {
     try {
-      const username = verifySessionToken(token);
-      if (username) {
-        const user = await storage.getUserByUsername(username);
+      const payload = verifySessionToken(token);
+      if (payload) {
+        const user = await storage.getUserByUsername(payload.u);
 
-        if (user) {
+        // sessionVersion must match the user's *current* value -- a password
+        // change bumps it, which immediately invalidates every token issued
+        // before that change (see updateUserPassword in storage.ts).
+        if (user && user.sessionVersion === payload.v) {
           // Don't expose password in req.user
           const { password, ...userWithoutPassword } = user;
           req.user = userWithoutPassword;
@@ -97,7 +164,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       console.error("Auth middleware error:", error);
     }
   }
-  
+
   next();
 };
 
@@ -142,9 +209,20 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function uploadImageBuffer(buffer: Buffer): Promise<string> {
+const ALLOWED_IMAGE_TYPES = new Set(['jpg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif']);
+
+async function uploadImageBuffer(buffer: Buffer): Promise<string> {
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    return Promise.reject(new Error('Image upload is not configured'));
+    throw new Error('Image upload is not configured');
+  }
+
+  // multer's fileFilter only checks the client-declared mimetype, which a
+  // client can set to anything regardless of the file's real content. Sniff
+  // the actual file signature here as a second, authoritative check before
+  // anything gets uploaded.
+  const detectedType = await fileTypeFromBuffer(buffer);
+  if (!detectedType || !ALLOWED_IMAGE_TYPES.has(detectedType.ext)) {
+    throw new Error('File does not appear to be a valid image');
   }
 
   return new Promise((resolve, reject) => {
@@ -169,7 +247,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   router.use(authMiddleware);
 
   // User routes
-  router.post('/users/register', async (req: Request, res: Response) => {
+  router.post('/users/register', registerLimiter, async (req: Request, res: Response) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       
@@ -199,7 +277,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     }
   });
 
-  router.post('/users/login', async (req: Request, res: Response) => {
+  router.post('/users/login', loginLimiter, async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
       
@@ -213,7 +291,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
       
       // Set auth cookie with enhanced security and persistence
-      res.cookie('auth_token', signSessionToken(username), {
+      res.cookie('auth_token', signSessionToken(username, user.sessionVersion), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -250,7 +328,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   });
   
   // Password reset routes
-  router.post('/users/forgot-password', async (req: Request, res: Response) => {
+  router.post('/users/forgot-password', passwordResetLimiter, async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
       
@@ -283,7 +361,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     }
   });
   
-  router.post('/users/reset-password', async (req: Request, res: Response) => {
+  router.post('/users/reset-password', passwordResetLimiter, async (req: Request, res: Response) => {
     try {
       const { token, newPassword } = req.body;
       
@@ -402,7 +480,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       }
 
       // Set auth cookie, same as the regular login route
-      res.cookie('auth_token', signSessionToken(user.username), {
+      res.cookie('auth_token', signSessionToken(user.username, user.sessionVersion), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -659,7 +737,7 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   });
 
   // Contact form
-  router.post('/contact', async (req: Request, res: Response) => {
+  router.post('/contact', contactLimiter, async (req: Request, res: Response) => {
     try {
       const { name, email, message } = req.body;
 
@@ -922,18 +1000,36 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
   // Commission routes
   router.get('/commissions', async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       let commissions;
-      
+
       if (req.query.artistId) {
         const artistId = parseInt(req.query.artistId as string);
+        if (req.user.id !== artistId && !req.user.isAdmin) {
+          return res.status(403).json({ message: "You can only view your own commissions" });
+        }
         commissions = await storage.getCommissionsByArtist(artistId);
       } else if (req.query.buyerId) {
         const buyerId = parseInt(req.query.buyerId as string);
+        if (req.user.id !== buyerId && !req.user.isAdmin) {
+          return res.status(403).json({ message: "You can only view your own commissions" });
+        }
         commissions = await storage.getCommissionsByBuyer(buyerId);
-      } else {
+      } else if (req.user.isAdmin) {
         commissions = await storage.getCommissions();
+      } else {
+        // No admin, no filter -- default to this user's own commissions
+        // (as buyer or artist) instead of handing back everyone's.
+        const [asArtist, asBuyer] = await Promise.all([
+          storage.getCommissionsByArtist(req.user.id),
+          storage.getCommissionsByBuyer(req.user.id),
+        ]);
+        commissions = [...asArtist, ...asBuyer];
       }
-      
+
       res.status(200).json(commissions);
     } catch (error) {
       res.status(500).json({ message: "Server error" });
@@ -944,11 +1040,16 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     try {
       const id = parseInt(req.params.id);
       const commission = await storage.getCommission(id);
-      
+
       if (!commission) {
         return res.status(404).json({ message: "Commission not found" });
       }
-      
+
+      const isParticipant = req.user && (req.user.id === commission.artistId || req.user.id === commission.buyerId);
+      if (!isParticipant && !(req.user && req.user.isAdmin)) {
+        return res.status(403).json({ message: "You don't have permission to view this commission" });
+      }
+
       res.status(200).json(commission);
     } catch (error) {
       res.status(500).json({ message: "Server error" });

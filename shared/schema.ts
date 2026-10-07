@@ -17,6 +17,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // Firebase authentication fields
   firebaseUid: text("firebase_uid"),
+  // Bumped whenever the password changes, invalidating every session token
+  // issued before that point (see signSessionToken/verifySessionToken).
+  sessionVersion: integer("session_version").default(1).notNull(),
   // Subscription related fields
   subscriptionTier: text("subscription_tier").default("free").notNull(), // 'free' or 'premium'
   subscriptionStartDate: timestamp("subscription_start_date"),

@@ -207,6 +207,7 @@ export class MemStorage implements IStorage {
       profileImage: insertUser.profileImage ?? null,
       socialLinks: insertUser.socialLinks ?? null,
       firebaseUid: insertUser.firebaseUid ?? null,
+      sessionVersion: 1,
       // Default values for subscription fields
       subscriptionTier: 'free',
       subscriptionStartDate: null,
@@ -743,7 +744,9 @@ export class MemStorage implements IStorage {
       return undefined;
     }
 
-    const updatedUser = { ...user, password: newPassword };
+    // Bump sessionVersion so every session token issued before this
+    // password change stops being accepted (see verifySessionToken).
+    const updatedUser = { ...user, password: newPassword, sessionVersion: user.sessionVersion + 1 };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -1278,7 +1281,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserPassword(userId: number, newPassword: string): Promise<User | undefined> {
     const [updatedUser] = await db.update(users)
-      .set({ password: newPassword })
+      .set({ password: newPassword, sessionVersion: sql`${users.sessionVersion} + 1` })
       .where(eq(users.id, userId))
       .returning();
     return updatedUser;
@@ -1322,7 +1325,7 @@ export class FixedDatabaseStorage extends DatabaseStorage {
     console.log(`Updating password for user ${userId}`);
     try {
       const [updatedUser] = await db.update(users)
-        .set({ password: newPassword })
+        .set({ password: newPassword, sessionVersion: sql`${users.sessionVersion} + 1` })
         .where(eq(users.id, userId))
         .returning();
       console.log('Password update successful');
