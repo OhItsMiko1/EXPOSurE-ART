@@ -1,12 +1,98 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from "@/lib/local-auth";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import PreferencesForm from '@/components/ui/PreferencesForm';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Heart, Settings, User } from 'lucide-react';
+
+function ProfilePhotoUpload() {
+  const { user, checkAuth } = useAuth();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!user) throw new Error('Not logged in');
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`/api/users/${user.id}/profile-image`, {
+        method: 'PUT',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to upload photo');
+      }
+
+      return response.json();
+    },
+    onSuccess: async () => {
+      await checkAuth();
+      toast({ title: 'Profile photo updated' });
+    },
+    onError: (error) => {
+      setPreview(null);
+      toast({
+        variant: 'destructive',
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    uploadMutation.mutate(file);
+    e.target.value = '';
+  };
+
+  if (!user) return null;
+
+  const initials = (user.fullName || user.username).slice(0, 2).toUpperCase();
+
+  return (
+    <div className="flex items-center gap-6">
+      <Avatar className="h-20 w-20">
+        <AvatarImage src={preview || user.profileImage || undefined} alt={user.fullName || user.username} />
+        <AvatarFallback className="bg-primary text-white text-xl">{initials}</AvatarFallback>
+      </Avatar>
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <Button
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadMutation.isPending}
+        >
+          {uploadMutation.isPending ? 'Uploading...' : 'Change Photo'}
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">JPG, PNG, or GIF. Max 5MB.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -143,7 +229,10 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-4">Account settings functionality coming soon...</p>
+                  <div className="mb-2">
+                    <p className="text-sm font-medium mb-3">Profile Photo</p>
+                    <ProfilePhotoUpload />
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

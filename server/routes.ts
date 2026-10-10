@@ -630,6 +630,34 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     }
   });
   
+  // Profile photo upload
+  router.put('/users/:id/profile-image', upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      if (!req.user || (req.user.id !== userId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: 'You can only update your own profile photo' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'Image is required' });
+      }
+
+      const imageUrl = await uploadImageBuffer(req.file.buffer);
+      const updatedUser = await storage.updateUserProfileImage(userId, imageUrl);
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error updating profile photo:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Server error' });
+    }
+  });
+
   // User preferences endpoints
   router.post('/users/:id/preferences', async (req: Request, res: Response) => {
     try {

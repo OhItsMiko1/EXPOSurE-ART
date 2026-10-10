@@ -159,7 +159,15 @@ export const editArtworkFormSchema = insertArtworkSchema.extend({
   image: z.any().optional(),
 }).omit({ imageUrl: true });
 
+// artistId/buyerId are picked by clicking an artist card / being logged in --
+// not real form fields, so they're set programmatically at submit time
+// (Commission.tsx) rather than collected through a registered <FormField>.
+// Requiring them here (as insertCommissionSchema does) made handleSubmit's
+// Zod validation fail silently on every submit, since there was no field
+// bound to show the resulting error.
 export const commissionFormSchema = insertCommissionSchema.extend({
+  artistId: z.number().optional(),
+  buyerId: z.number().optional(),
   email: z.string().email("Invalid email address").optional(),
   phone: z.string().optional(),
 });

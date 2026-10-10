@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -55,12 +55,17 @@ export default function Commission() {
     },
   });
 
-  // Update artist ID in form when selected artist changes
-  useState(() => {
+  // Update artist ID in form when selected artist changes. (This used to be
+  // written as useState(() => {...}), which only runs its callback once at
+  // mount to compute initial state -- it never re-ran when selectedArtistId
+  // changed later, so the form's artistId field was permanently stuck at
+  // undefined. onSubmit below sets the real value explicitly either way, but
+  // this keeps the form's own state consistent too.)
+  useEffect(() => {
     if (selectedArtistId) {
       form.setValue("artistId", parseInt(selectedArtistId));
     }
-  });
+  }, [selectedArtistId, form]);
 
   // Create commission mutation
   const commissionMutation = useMutation({

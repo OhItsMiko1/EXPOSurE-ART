@@ -61,6 +61,7 @@ export interface IStorage {
   getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenAsUsed(tokenId: number): Promise<PasswordResetToken | undefined>;
   updateUserFirebaseInfo(userId: number, info: { firebaseUid: string }): Promise<User | undefined>;
+  updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -413,6 +414,17 @@ export class MemStorage implements IStorage {
       firebaseUid: info.firebaseUid
     };
 
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return undefined;
+    }
+
+    const updatedUser = { ...user, profileImage };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -943,6 +955,14 @@ export class DatabaseStorage implements IStorage {
       .set({
         firebaseUid: info.firebaseUid
       })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({ profileImage })
       .where(eq(users.id, userId))
       .returning();
     return updatedUser;
