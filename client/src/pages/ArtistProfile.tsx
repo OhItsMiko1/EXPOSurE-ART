@@ -124,8 +124,16 @@ export default function ArtistProfile() {
   // Generate artist specialties
   const specialties = artist.bio?.split(',') || [];
   
+  const hasCustomProfile = artist.customProfileEnabled && artist.subscriptionTier === 'premium';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {artist.subscriptionTier === 'premium' && artist.profileBackgroundImage && (
+        <div
+          className="h-48 sm:h-64 rounded-lg bg-cover bg-center mb-8"
+          style={{ backgroundImage: `url(${artist.profileBackgroundImage})` }}
+        />
+      )}
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Artist Info Sidebar */}
         <div className="lg:w-1/3">
@@ -282,12 +290,26 @@ export default function ArtistProfile() {
         
         {/* Artist Portfolio */}
         <div className="lg:w-2/3">
-          <Tabs defaultValue="portfolio">
+          <Tabs defaultValue={hasCustomProfile ? "custom" : "portfolio"}>
             <TabsList className="mb-6">
+              {hasCustomProfile && <TabsTrigger value="custom">{artist.fullName}'s Page</TabsTrigger>}
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
               <TabsTrigger value="about">About</TabsTrigger>
             </TabsList>
-            
+
+            {hasCustomProfile && (
+              <TabsContent value="custom">
+                <div className="border rounded-lg overflow-hidden bg-white shadow-md" style={{ height: 600 }}>
+                  <iframe
+                    src={`/api/users/${artist.id}/custom-profile-frame`}
+                    sandbox=""
+                    className="w-full h-full"
+                    title={`${artist.fullName}'s custom profile`}
+                  />
+                </div>
+              </TabsContent>
+            )}
+
             <TabsContent value="portfolio">
               <CategoryFilter 
                 title="Artworks" 

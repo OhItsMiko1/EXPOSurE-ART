@@ -15,6 +15,15 @@ export const users = pgTable("users", {
   profileImage: text("profile_image"),
   socialLinks: text("social_links"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Profile customization (premium feature)
+  profileBackgroundImage: text("profile_background_image"),
+  // Stored HTML/CSS is already sanitized server-side before being written
+  // here (see sanitizeProfileHtml/sanitizeProfileCss in server/routes.ts),
+  // and is rendered inside a script-disabled sandboxed iframe -- never
+  // trust these columns as safe on their own if read anywhere else.
+  customProfileHtml: text("custom_profile_html"),
+  customProfileCss: text("custom_profile_css"),
+  customProfileEnabled: boolean("custom_profile_enabled").default(false).notNull(),
   // Firebase authentication fields
   firebaseUid: text("firebase_uid"),
   // Bumped whenever the password changes, invalidating every session token
@@ -367,6 +376,12 @@ export const updateUserSubscriptionSchema = z.object({
   stripeSubscriptionId: z.string().optional(),
 });
 
+export const updateCustomProfileSchema = z.object({
+  customProfileHtml: z.string().max(50000).optional(),
+  customProfileCss: z.string().max(20000).optional(),
+  customProfileEnabled: z.boolean(),
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -526,6 +541,7 @@ export type Recommendation = typeof recommendations.$inferSelect;
 
 export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
 export type UpdateUserSubscription = z.infer<typeof updateUserSubscriptionSchema>;
+export type UpdateCustomProfile = z.infer<typeof updateCustomProfileSchema>;
 
 // Types for new entities
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;

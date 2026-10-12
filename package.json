@@ -67,6 +67,7 @@
     "firebase": "^11.6.0",
     "framer-motion": "^11.13.1",
     "input-otp": "^1.2.4",
+    "isomorphic-dompurify": "^4.5.0",
     "jose": "^6.2.12",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",

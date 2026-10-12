@@ -21,6 +21,11 @@ export type User = {
   isAdmin?: boolean;
   profileImage?: string;
   socialLinks?: string;
+  // Profile customization (premium feature)
+  profileBackgroundImage?: string;
+  customProfileHtml?: string;
+  customProfileCss?: string;
+  customProfileEnabled?: boolean;
   // Firebase authentication fields
   firebaseUid?: string;
   // Subscription fields

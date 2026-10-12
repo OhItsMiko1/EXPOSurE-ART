@@ -8,7 +8,8 @@ import {
   insertTutorialSchema,
   insertTutorialStepSchema,
   insertPasswordResetTokenSchema,
-  insertMessageSchema
+  insertMessageSchema,
+  updateCustomProfileSchema
 } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
@@ -21,6 +22,7 @@ import crypto from "crypto";
 import { verifyFirebaseIdToken } from "./firebase-verify";
 import rateLimit from "express-rate-limit";
 import { fileTypeFromBuffer } from "file-type";
+import DOMPurify from "isomorphic-dompurify";
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -208,6 +210,44 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// Custom profile HTML/CSS (MySpace-style premium customization). This is
+// genuinely attacker-controlled content rendered to other logged-in users,
+// so it gets layered defenses rather than relying on any single one:
+//   1. Sanitized here before being written to the database.
+//   2. Sanitized AGAIN at render time (custom-profile-frame route below),
+//      in case the stored value were ever written some other way.
+//   3. Served with a strict Content-Security-Policy that blocks scripts,
+//      frames, and form submission outright regardless of what's in the markup.
+//   4. Embedded by the client in an iframe with an empty `sandbox` attribute
+//      (no allow-scripts, no allow-forms, no allow-same-origin), which
+//      disables script execution at the browser level independent of 1-3.
+// Layer 4 alone is enough to stop script execution; 1-3 exist so a sandbox
+// misconfiguration or a future change to how this gets embedded doesn't
+// become a silent single point of failure.
+const FORBIDDEN_PROFILE_TAGS = [
+  'script', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form', 'style', 'svg', 'math'
+];
+
+export function sanitizeProfileHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    FORBID_TAGS: FORBIDDEN_PROFILE_TAGS,
+  });
+}
+
+export function sanitizeProfileCss(css: string): string {
+  // The CSP on the rendered frame is the real backstop against external
+  // resource loading; this just removes legacy/no-legitimate-use constructs
+  // before the value is even stored.
+  return css
+    .replace(/@import[^;]*;?/gi, '')
+    .replace(/expression\s*\(/gi, '')
+    .replace(/-moz-binding\s*:[^;]*;?/gi, '')
+    .replace(/behavior\s*:[^;]*;?/gi, '');
+}
+
+const CUSTOM_PROFILE_FRAME_CSP =
+  "default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none';";
 
 const ALLOWED_IMAGE_TYPES = new Set(['jpg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif']);
 
@@ -655,6 +695,104 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
     } catch (error) {
       console.error('Error updating profile photo:', error);
       res.status(500).json({ message: error instanceof Error ? error.message : 'Server error' });
+    }
+  });
+
+  // Profile background photo (premium)
+  router.put('/users/:id/profile-background', upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      if (!req.user || (req.user.id !== userId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: 'You can only update your own profile' });
+      }
+
+      if (req.user.subscriptionTier !== 'premium' && !req.user.isAdmin) {
+        return res.status(403).json({ message: 'Profile backgrounds are a premium feature' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'Image is required' });
+      }
+
+      const imageUrl = await uploadImageBuffer(req.file.buffer);
+      const updatedUser = await storage.updateUserProfileBackground(userId, imageUrl);
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error updating profile background:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Server error' });
+    }
+  });
+
+  // Custom profile HTML/CSS (premium) -- see the sanitizer comments above
+  // for the full defense-in-depth rationale.
+  router.put('/users/:id/custom-profile', async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      if (!req.user || (req.user.id !== userId && !req.user.isAdmin)) {
+        return res.status(403).json({ message: 'You can only edit your own profile' });
+      }
+
+      if (req.user.subscriptionTier !== 'premium' && !req.user.isAdmin) {
+        return res.status(403).json({ message: 'Custom profile styling is a premium feature' });
+      }
+
+      const parsed = updateCustomProfileSchema.parse(req.body);
+
+      const updatedUser = await storage.updateCustomProfile(userId, {
+        ...parsed,
+        customProfileHtml: parsed.customProfileHtml !== undefined ? sanitizeProfileHtml(parsed.customProfileHtml) : undefined,
+        customProfileCss: parsed.customProfileCss !== undefined ? sanitizeProfileCss(parsed.customProfileCss) : undefined,
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation failed", errors: error.errors });
+      } else {
+        console.error('Error updating custom profile:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    }
+  });
+
+  // Renders a user's custom profile HTML/CSS as a standalone document, meant
+  // to be embedded via <iframe sandbox="">. Never link to this directly --
+  // it's not a page, it's a sandboxed rendering target.
+  router.get('/users/:id/custom-profile-frame', async (req: Request, res: Response) => {
+    res.set('Content-Security-Policy', CUSTOM_PROFILE_FRAME_CSP);
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+
+      if (!user || !user.customProfileEnabled || user.subscriptionTier !== 'premium') {
+        return res.status(404).send('<!doctype html><html><body></body></html>');
+      }
+
+      const html = sanitizeProfileHtml(user.customProfileHtml || '');
+      const css = sanitizeProfileCss(user.customProfileCss || '');
+
+      res.send(
+        `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${html}</body></html>`
+      );
+    } catch (error) {
+      console.error('Error rendering custom profile frame:', error);
+      res.status(500).send('<!doctype html><html><body></body></html>');
     }
   });
 

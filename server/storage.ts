@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import {
-  users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription,
+  users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription, type UpdateCustomProfile,
   categories, type Category, type InsertCategory,
   artworks, type Artwork, type InsertArtwork,
   commissions, type Commission, type InsertCommission,
@@ -62,6 +62,8 @@ export interface IStorage {
   markPasswordResetTokenAsUsed(tokenId: number): Promise<PasswordResetToken | undefined>;
   updateUserFirebaseInfo(userId: number, info: { firebaseUid: string }): Promise<User | undefined>;
   updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined>;
+  updateUserProfileBackground(userId: number, profileBackgroundImage: string): Promise<User | undefined>;
+  updateCustomProfile(userId: number, data: UpdateCustomProfile): Promise<User | undefined>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -209,6 +211,10 @@ export class MemStorage implements IStorage {
       socialLinks: insertUser.socialLinks ?? null,
       firebaseUid: insertUser.firebaseUid ?? null,
       sessionVersion: 1,
+      profileBackgroundImage: null,
+      customProfileHtml: null,
+      customProfileCss: null,
+      customProfileEnabled: false,
       // Default values for subscription fields
       subscriptionTier: 'free',
       subscriptionStartDate: null,
@@ -425,6 +431,33 @@ export class MemStorage implements IStorage {
     }
 
     const updatedUser = { ...user, profileImage };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserProfileBackground(userId: number, profileBackgroundImage: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return undefined;
+    }
+
+    const updatedUser = { ...user, profileBackgroundImage };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateCustomProfile(userId: number, data: UpdateCustomProfile): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return undefined;
+    }
+
+    const updatedUser = {
+      ...user,
+      customProfileHtml: data.customProfileHtml ?? user.customProfileHtml,
+      customProfileCss: data.customProfileCss ?? user.customProfileCss,
+      customProfileEnabled: data.customProfileEnabled,
+    };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -963,6 +996,26 @@ export class DatabaseStorage implements IStorage {
   async updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined> {
     const [updatedUser] = await db.update(users)
       .set({ profileImage })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async updateUserProfileBackground(userId: number, profileBackgroundImage: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({ profileBackgroundImage })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async updateCustomProfile(userId: number, data: UpdateCustomProfile): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({
+        ...(data.customProfileHtml !== undefined ? { customProfileHtml: data.customProfileHtml } : {}),
+        ...(data.customProfileCss !== undefined ? { customProfileCss: data.customProfileCss } : {}),
+        customProfileEnabled: data.customProfileEnabled,
+      })
       .where(eq(users.id, userId))
       .returning();
     return updatedUser;
