@@ -9,7 +9,8 @@ import {
   insertTutorialStepSchema,
   insertPasswordResetTokenSchema,
   insertMessageSchema,
-  updateCustomProfileSchema
+  updateCustomProfileSchema,
+  updateUserSubscriptionSchema
 } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
@@ -25,6 +26,7 @@ import { fileTypeFromBuffer } from "file-type";
 import DOMPurify from "isomorphic-dompurify";
 
 const BCRYPT_SALT_ROUNDS = 10;
+const PREMIUM_SUBSCRIPTION_PRICE_CENTS = 1000; // $10.00
 
 // Rate limiters for endpoints that are otherwise unlimited guess/spam targets
 // (brute-forcing a password, hammering the password-reset email sender, or
@@ -236,18 +238,29 @@ export function sanitizeProfileHtml(html: string): string {
 }
 
 export function sanitizeProfileCss(css: string): string {
-  // The CSP on the rendered frame is the real backstop against external
-  // resource loading; this just removes legacy/no-legitimate-use constructs
-  // before the value is even stored.
+  // This gets interpolated directly into `<style>${css}</style>` (see the
+  // custom-profile-frame route). A CSS value containing "</style>" would
+  // close that tag early and let everything after it be parsed as raw HTML,
+  // completely bypassing sanitizeProfileHtml. Stripping '<' and '>' (which
+  // CSS never legitimately needs) closes that off entirely, not just the
+  // literal "</style>" string.
   return css
+    .replace(/[<>]/g, '')
     .replace(/@import[^;]*;?/gi, '')
     .replace(/expression\s*\(/gi, '')
     .replace(/-moz-binding\s*:[^;]*;?/gi, '')
     .replace(/behavior\s*:[^;]*;?/gi, '');
 }
 
+// `sandbox` with no tokens applies the same restrictions as an empty
+// iframe sandbox="" attribute, but as an HTTP header -- so this frame is
+// locked down (no scripts, no forms, no top-level navigation, opaque
+// origin) even if someone opens the URL directly as a page instead of
+// through the <iframe sandbox=""> it's meant to be embedded in.
+// frame-ancestors restricts embedding to this site, so another site can't
+// iframe it for a clickjacking-style attack either.
 const CUSTOM_PROFILE_FRAME_CSP =
-  "default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none';";
+  "default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'; sandbox; frame-ancestors 'self';";
 
 const ALLOWED_IMAGE_TYPES = new Set(['jpg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif']);
 
@@ -829,18 +842,55 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
         return res.status(403).json({ message: 'You can only update your own subscription' });
       }
 
-      const subscription = req.body;
+      const subscription = updateUserSubscriptionSchema.parse(req.body);
+
+      // This used to trust {subscriptionTier: 'premium'} from the client
+      // outright -- anyone could grant themselves premium (and everything
+      // gated on it, including the custom-profile HTML/CSS feature) with one
+      // request, no payment at all. Downgrading to free is always fine;
+      // upgrading to premium now requires proof of an actual successful,
+      // server-verified Stripe payment, tied to this specific account.
+      if (subscription.subscriptionTier === 'premium' && !req.user.isAdmin) {
+        if (!stripe) {
+          return res.status(500).json({ message: 'Payments are not configured' });
+        }
+
+        const paymentIntentId = req.body.paymentIntentId;
+        if (!paymentIntentId || typeof paymentIntentId !== 'string') {
+          return res.status(400).json({ message: 'A valid payment confirmation is required to upgrade to premium' });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (paymentIntent.status !== 'succeeded') {
+          return res.status(402).json({ message: 'Payment has not completed successfully' });
+        }
+        if (paymentIntent.amount !== PREMIUM_SUBSCRIPTION_PRICE_CENTS || paymentIntent.currency !== 'usd') {
+          return res.status(402).json({ message: 'Payment does not match the premium subscription price' });
+        }
+        if (paymentIntent.metadata?.subscription_type !== 'premium') {
+          return res.status(400).json({ message: 'This payment was not for a premium subscription' });
+        }
+        if (paymentIntent.metadata?.userId !== String(userId)) {
+          return res.status(403).json({ message: 'This payment does not belong to your account' });
+        }
+      }
+
       const updatedUser = await storage.updateUserSubscription(userId, subscription);
-      
+
       if (!updatedUser) {
         return res.status(404).json({ message: 'User not found' });
       }
-      
+
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
     } catch (error) {
-      console.error('Error updating user subscription:', error);
-      res.status(500).json({ message: 'Server error' });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation failed", errors: error.errors });
+      } else {
+        console.error('Error updating user subscription:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
     }
   });
   
@@ -953,21 +1003,29 @@ export async function registerRoutes(app: Express, httpServer?: Server): Promise
       if (!stripe) {
         return res.status(500).json({ message: 'Stripe is not configured' });
       }
-      
-      // Get amount from request or default to $10.00
-      const { amount = 1000 } = req.body; 
-      
-      // Create a payment intent for the subscription
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // The amount used to come straight from the request body, and nothing
+      // tied the resulting PaymentIntent to the user who created it -- so
+      // the premium-upgrade check in /users/:id/subscription below couldn't
+      // actually trust it. The price is now fixed server-side (any
+      // client-supplied amount is ignored), and the user is stamped into
+      // the intent's metadata so that route can verify this payment both
+      // succeeded AND belongs to the account being upgraded.
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount, // Amount in cents
+        amount: PREMIUM_SUBSCRIPTION_PRICE_CENTS,
         currency: 'usd',
         payment_method_types: ['card'],
         metadata: {
           subscription_type: 'premium',
-          product: 'EXPOSurE.ART Premium Subscription'
+          product: 'EXPOSurE.ART Premium Subscription',
+          userId: String(req.user.id),
         }
       });
-      
+
       // Send client secret to the client
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {

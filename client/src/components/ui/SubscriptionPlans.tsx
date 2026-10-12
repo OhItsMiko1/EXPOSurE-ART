@@ -140,10 +140,13 @@ export default function SubscriptionPlans() {
 
   // Mutation for free tier subscription
   const { isPending: isSubscribing, mutate: updateSubscription } = useMutation({
-    mutationFn: async (tier: 'free' | 'premium') => {
+    mutationFn: async ({ tier, paymentIntentId }: { tier: 'free' | 'premium'; paymentIntentId?: string }) => {
       if (!user) throw new Error('User not authenticated');
       return apiRequest('POST', `/api/users/${user.id}/subscription`, {
-        subscriptionTier: tier
+        subscriptionTier: tier,
+        // Required by the server to upgrade to premium -- it verifies this
+        // payment actually succeeded before granting the tier.
+        ...(paymentIntentId ? { paymentIntentId } : {}),
       });
     },
     onSuccess: () => {
@@ -179,16 +182,19 @@ export default function SubscriptionPlans() {
     
     if (selectedPlan === 'free') {
       // Free tier doesn't need payment
-      updateSubscription('free');
+      updateSubscription({ tier: 'free' });
     } else {
       // Premium tier needs payment
       createPaymentIntent();
     }
   };
-  
+
   const handlePaymentSuccess = () => {
-    // Update subscription after successful payment
-    updateSubscription('premium');
+    // Update subscription after successful payment. The client secret is
+    // formatted as "<paymentIntentId>_secret_<...>" -- pull the id back out
+    // so the server can look the payment up and verify it actually succeeded.
+    const paymentIntentId = clientSecret.split('_secret_')[0];
+    updateSubscription({ tier: 'premium', paymentIntentId });
     setPaymentModalOpen(false);
   };
   
