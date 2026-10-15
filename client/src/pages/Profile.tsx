@@ -8,11 +8,113 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import PreferencesForm from '@/components/ui/PreferencesForm';
 import { Link } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Heart, Settings, User, Image as ImageIcon, Sparkles, Lock } from 'lucide-react';
+
+function parseSocialLinks(raw?: string | null): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function EditProfileDetails() {
+  const { user, checkAuth } = useAuth();
+  const { toast } = useToast();
+  const existingLinks = parseSocialLinks(user?.socialLinks);
+
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [location, setLocation] = useState(user?.location ?? '');
+  const [instagram, setInstagram] = useState(existingLinks.instagram ?? '');
+  const [twitter, setTwitter] = useState(existingLinks.twitter ?? '');
+  const [facebook, setFacebook] = useState(existingLinks.facebook ?? '');
+  const [website, setWebsite] = useState(existingLinks.website ?? '');
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not logged in');
+
+      const socialLinks = JSON.stringify({
+        ...(instagram ? { instagram } : {}),
+        ...(twitter ? { twitter } : {}),
+        ...(facebook ? { facebook } : {}),
+        ...(website ? { website } : {}),
+      });
+
+      const response = await fetch(`/api/users/${user.id}/profile`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, bio, location, socialLinks }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save profile');
+      }
+      return response.json();
+    },
+    onSuccess: async () => {
+      await checkAuth();
+      toast({ title: 'Profile updated' });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
+    },
+  });
+
+  if (!user) return null;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="fullName" className="text-sm font-medium">Name</Label>
+        <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-1" />
+      </div>
+      <div>
+        <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
+        <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} className="mt-1 h-24" />
+      </div>
+      <div>
+        <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1" />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="instagram" className="text-sm font-medium">Instagram URL</Label>
+          <Input id="instagram" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="mt-1" placeholder="https://instagram.com/you" />
+        </div>
+        <div>
+          <Label htmlFor="twitter" className="text-sm font-medium">Twitter / X URL</Label>
+          <Input id="twitter" value={twitter} onChange={(e) => setTwitter(e.target.value)} className="mt-1" placeholder="https://x.com/you" />
+        </div>
+        <div>
+          <Label htmlFor="facebook" className="text-sm font-medium">Facebook URL</Label>
+          <Input id="facebook" value={facebook} onChange={(e) => setFacebook(e.target.value)} className="mt-1" placeholder="https://facebook.com/you" />
+        </div>
+        <div>
+          <Label htmlFor="website" className="text-sm font-medium">Website URL</Label>
+          <Input id="website" value={website} onChange={(e) => setWebsite(e.target.value)} className="mt-1" placeholder="https://yoursite.com" />
+        </div>
+      </div>
+      <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !fullName.trim()}>
+        {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+      </Button>
+    </div>
+  );
+}
 
 function ProfilePhotoUpload() {
   const { user, checkAuth } = useAuth();
@@ -438,6 +540,11 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div>
+                    <p className="text-sm font-medium mb-3">Profile Details</p>
+                    <EditProfileDetails />
+                  </div>
+
+                  <div className="pt-6 border-t">
                     <p className="text-sm font-medium mb-3">Profile Photo</p>
                     <ProfilePhotoUpload />
                   </div>

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import {
-  users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription, type UpdateCustomProfile,
+  users, type User, type InsertUser, type UpdateUserPreferences, type UpdateUserSubscription, type UpdateCustomProfile, type UpdateUserProfile,
   categories, type Category, type InsertCategory,
   artworks, type Artwork, type InsertArtwork,
   commissions, type Commission, type InsertCommission,
@@ -64,6 +64,7 @@ export interface IStorage {
   updateUserProfileImage(userId: number, profileImage: string): Promise<User | undefined>;
   updateUserProfileBackground(userId: number, profileBackgroundImage: string): Promise<User | undefined>;
   updateCustomProfile(userId: number, data: UpdateCustomProfile): Promise<User | undefined>;
+  updateUserProfile(userId: number, data: UpdateUserProfile): Promise<User | undefined>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -457,6 +458,23 @@ export class MemStorage implements IStorage {
       customProfileHtml: data.customProfileHtml ?? user.customProfileHtml,
       customProfileCss: data.customProfileCss ?? user.customProfileCss,
       customProfileEnabled: data.customProfileEnabled,
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserProfile(userId: number, data: UpdateUserProfile): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) {
+      return undefined;
+    }
+
+    const updatedUser = {
+      ...user,
+      fullName: data.fullName ?? user.fullName,
+      bio: data.bio ?? user.bio,
+      location: data.location ?? user.location,
+      socialLinks: data.socialLinks ?? user.socialLinks,
     };
     this.users.set(userId, updatedUser);
     return updatedUser;
@@ -1015,6 +1033,19 @@ export class DatabaseStorage implements IStorage {
         ...(data.customProfileHtml !== undefined ? { customProfileHtml: data.customProfileHtml } : {}),
         ...(data.customProfileCss !== undefined ? { customProfileCss: data.customProfileCss } : {}),
         customProfileEnabled: data.customProfileEnabled,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+
+  async updateUserProfile(userId: number, data: UpdateUserProfile): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({
+        ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
+        ...(data.bio !== undefined ? { bio: data.bio } : {}),
+        ...(data.location !== undefined ? { location: data.location } : {}),
+        ...(data.socialLinks !== undefined ? { socialLinks: data.socialLinks } : {}),
       })
       .where(eq(users.id, userId))
       .returning();

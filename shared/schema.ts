@@ -382,6 +382,13 @@ export const updateCustomProfileSchema = z.object({
   customProfileEnabled: z.boolean(),
 });
 
+export const updateUserProfileSchema = z.object({
+  fullName: z.string().min(1, "Name is required").max(100).optional(),
+  bio: z.string().max(2000).optional(),
+  location: z.string().max(200).optional(),
+  socialLinks: z.string().max(2000).optional(),
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -542,6 +549,7 @@ export type Recommendation = typeof recommendations.$inferSelect;
 export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
 export type UpdateUserSubscription = z.infer<typeof updateUserSubscriptionSchema>;
 export type UpdateCustomProfile = z.infer<typeof updateCustomProfileSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 
 // Types for new entities
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
