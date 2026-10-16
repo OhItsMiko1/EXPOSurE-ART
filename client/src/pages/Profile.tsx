@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { useAuth } from "@/lib/local-auth";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,6 +65,7 @@ function EditProfileDetails() {
     },
     onSuccess: async () => {
       await checkAuth();
+      if (user) queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}`] });
       toast({ title: 'Profile updated' });
     },
     onError: (error) => {
@@ -144,6 +146,7 @@ function ProfilePhotoUpload() {
     },
     onSuccess: async () => {
       await checkAuth();
+      if (user) queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}`] });
       toast({ title: 'Profile photo updated' });
     },
     onError: (error) => {
@@ -245,6 +248,7 @@ function ProfileBackgroundUpload() {
     },
     onSuccess: async () => {
       await checkAuth();
+      if (user) queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}`] });
       toast({ title: 'Profile background updated' });
     },
     onError: (error) => {
@@ -326,8 +330,14 @@ function CustomProfileEditor() {
     },
     onSuccess: async () => {
       await checkAuth();
+      if (user) queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}`] });
       setPreviewKey((k) => k + 1);
-      toast({ title: 'Custom profile saved' });
+      toast({
+        title: 'Custom profile saved',
+        description: enabled
+          ? 'It\'s live on your public artist page.'
+          : 'Still hidden -- turn on the toggle above to publish it.',
+      });
     },
     onError: (error) => {
       toast({
@@ -351,6 +361,13 @@ function CustomProfileEditor() {
         </div>
         <Switch id="custom-profile-enabled" checked={enabled} onCheckedChange={setEnabled} />
       </div>
+
+      {!enabled && html.trim() && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          This toggle is off, so your custom profile is hidden from visitors even after you save --
+          turn it on above to actually publish it.
+        </p>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
